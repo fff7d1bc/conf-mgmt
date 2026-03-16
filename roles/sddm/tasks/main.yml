@@ -1,0 +1,23 @@
+- name: sddm
+  tags: [sddm]
+  block:
+  - name: /etc/systemd/system/sddm.service.d directory
+    file:
+      state: directory
+      path: /etc/systemd/system/sddm.service.d
+      owner: root
+      group: root
+      mode: 0755
+
+  # Fixes random blackscreen on boot when sddm starts before GPU drivers kicks in fully.
+  - name: make sddm.service wait for systemd-udev-settle.service
+    copy: 
+      dest: /etc/systemd/system/sddm.service.d/override.conf
+      owner: root
+      group: root
+      mode: 0644
+      content: |
+        [Unit]
+        After=plymouth-quit-wait.service
+        [Service]
+        ExecStartPre=sleep 3

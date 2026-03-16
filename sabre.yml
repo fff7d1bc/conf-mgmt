@@ -1,0 +1,104 @@
+#!/usr/bin/env ansible-playbook
+
+- name: sabre
+  gather_facts: true
+  gather_subset:
+    - min
+  hosts: [all]
+  vars:
+    confmgmt:
+      homebrew:
+        user: piotr
+        formulas:
+          - lima
+          - ab-av1
+          - aria2
+          - borgbackup
+          - colordiff
+          - coreutils
+          - moreutils
+          - ffmpeg
+          - findutils
+          - golang
+          - gawk
+          - gnu-sed
+          - gnu-tar
+          - grep
+          - htop
+          - iperf3
+          - ipython
+          - jc
+          - jq
+          - lftp
+          - lz4
+          - megatools
+          - mkvtoolnix
+          - mpv
+          - ncdu
+          - nmap
+          - nvm
+          - p7zip
+          - pip-tools
+          - pipx
+          - poetry
+          - pv
+          - pwgen
+          - qrencode
+          - qpdf
+          - rclone
+          - ripgrep
+          - rsync
+          - scrcpy
+          - socat
+          - sshuttle
+          - svt-av1
+          - telnet
+          - tmux
+          - tox
+          - wget
+          - wgetpaste
+          - xz
+          - yt-dlp
+          - zstd
+          - vim
+        casks:
+          - alfred
+          - alt-tab
+          - android-platform-tools
+          - balenaetcher
+          - calibre
+          - fbreader
+          - firefox
+          - font-jetbrains-mono
+          - freecad
+          - gimp
+          - google-chrome
+          - iina
+          - keepassxc
+          - libreoffice
+          - linearmouse
+          - localsend
+          - losslesscut
+          - makemkv
+          - monitorcontrol
+          - openscad
+          - opera
+          - orcaslicer
+          - rancher
+          - rar
+          - raspberry-pi-imager
+          - rectangle
+          - signal
+          - stats
+          - syncthing-app
+          - tailscale-app
+          - utm
+          - wezterm
+      home_files:
+        files:
+          piotr:
+            - zsh
+            - mpv
+            - wezterm
+  roles:
+    - role: meta

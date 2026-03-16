@@ -1,0 +1,62 @@
+- name: homebrew
+  tags: [homebrew]
+  become: "{{ 'yes' if ansible_facts.user_id != confmgmt.homebrew.user else 'no' }}"
+  become_user: "{{ confmgmt.homebrew.user }}"
+  block:
+    - name: homebrew update
+      when: confmgmt.homebrew.formulas is defined or confmgmt.homebrew.casks is defined
+      homebrew:
+        update_homebrew: True
+
+    - name: homebrew formulas upgrade
+      when: confmgmt.homebrew.formulas is defined
+      homebrew:
+        upgrade_all: True
+        upgrade_options: [formula]
+
+    - name: homebrew formulas install
+      when: confmgmt.homebrew.formulas is defined
+      homebrew:
+        name: "{{ confmgmt.homebrew.formulas }}"
+        state: present
+
+    - name: install homebrew casks 
+      when: confmgmt.homebrew.casks is defined
+      block:
+        - name: install homebrew casks (with "homebrew" module)
+          when: confmgmt.homebrew.casks is defined
+          # The "homebrew" module is much faster than "homebrew_cask" but it cannot pass
+          # sudo_password. If it fails, typically because the cask’s installer prompts for sudo
+          # password then fall back to "homebrew_cask". The main edge case is when a formula and a
+          # cask share the same name but this is rare.  For example, Syncthing used to clash but its
+          # cask was renamed to "syncthing-app".
+          homebrew:
+            name: "{{ confmgmt.homebrew.casks }}"
+            state: present
+
+        - name: upgrade homebrew casks (with homebrew_cask module)
+          when: confmgmt.homebrew.casks is defined
+          homebrew_cask:
+            upgrade_all: True
+            greedy: True
+      rescue:
+        - name: "sudo password for homebrew casks, if that's the reason for above failure"
+          pause:
+            prompt: "SUDO_PASSWORD: "
+            echo: no
+          register: sudo_password
+
+        - name: install homebrew casks (with sudo password and homebrew_cask module)
+          when: confmgmt.homebrew.casks is defined
+          homebrew_cask:
+            name: "{{ confmgmt.homebrew.casks }}"
+            state: present
+            sudo_password: "{{ sudo_password.user_input }}"
+
+        - name: upgrade homebrew casks (with sudo password and homebrew_cask module)
+          when: confmgmt.homebrew.casks is defined
+          homebrew_cask:
+            sudo_password: "{{ sudo_password.user_input }}"
+            upgrade_all: True
+            greedy: True
+

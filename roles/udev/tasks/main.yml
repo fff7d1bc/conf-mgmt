@@ -1,0 +1,15 @@
+- name: udev
+  tags: [udev]
+  block:
+  - name: udev rules
+    notify:
+    - reload udev rules
+    copy:
+      dest: /etc/udev/rules.d/{{ item }}
+      src: rules.d/{{ item }}
+      owner: root
+      group: root
+      mode: 0644
+    with_items:
+    - 99-raid56.rules
+    - 99-eh_timeout.rules

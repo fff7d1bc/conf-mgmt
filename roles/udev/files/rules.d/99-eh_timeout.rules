@@ -1,0 +1,1 @@
+ACTION=="add|change", SUBSYSTEM=="block", KERNEL=="sd*", TEST=="device/eh_timeout", ATTR{device/eh_timeout}="15"

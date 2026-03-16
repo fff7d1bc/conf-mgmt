@@ -1,0 +1,8 @@
+- name: pam
+  tags: [pam]
+  block:
+  - name: Comment out pam_motd.so in /etc/pam.d/sshd
+    replace:
+      path: /etc/pam.d/sshd
+      regexp: '^(?P<line>\s*session\s+optional\s+pam_motd\.so\b.*)$'
+      replace: '# \g<line>'

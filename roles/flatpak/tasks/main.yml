@@ -1,0 +1,20 @@
+- name: flatpak
+  tags: [flatpak]
+  block:
+  - name: flathub remote
+    community.general.flatpak_remote:
+      name: flathub
+      state: present
+      flatpakrepo_url: https://dl.flathub.org/repo/flathub.flatpakrepo
+      method: system
+
+  - name: flatpak update
+    shell: flatpak update --noninteractive
+    register: flatpak_update_results
+    changed_when: flatpak_update_results.stdout_lines | select('search', '^Nothing to do') | list | length == 0
+
+  - name: flatpak packages
+    when: confmgmt.flatpak.packages is defined
+    community.general.flatpak:
+      name: "{{ confmgmt.flatpak.packages }}"
+      state: present

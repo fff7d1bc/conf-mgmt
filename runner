@@ -1,0 +1,118 @@
+#!/usr/bin/env bash
+
+
+# Usage:
+#     ./runner local
+#     ./runner local NAME.yml
+#     ./runner remote NAME.yml
+#     ./runner remote NAME.yml host
+#     ./runner remote NAME.yml user@host
+
+
+set -e
+set -u
+
+
+umask 077
+
+venv_dir="${HOME}/.cache/conf-mgmt/venv"
+script_path="$(readlink -f "$0")"
+work_dir="${script_path%/*}"
+script_dir_name="${work_dir##*/}"
+
+
+cd "${work_dir}"
+
+
+einfo() {
+    echo "[INFO] >>> $*"
+}
+
+
+eerror() {
+    echo "[ERROR] >>> $*" >&2
+}
+
+
+edie() {
+    eerror "$*"
+    exit 1
+}
+
+
+setup_and_load_venv() {
+    if ! [ -d "${venv_dir}" ] || ! cmp "${work_dir}/requirements.txt" "${venv_dir}/requirements.txt"; then
+        einfo 'Setting up new virtualenv ...'
+        rm -rf "${venv_dir}"
+        mkdir -p "${venv_dir}"
+        python3 -m venv "${venv_dir}"
+        . "${venv_dir}/bin/activate"
+        pip install -r "${work_dir}/requirements.txt"
+        cp "${work_dir}/requirements.txt" "${venv_dir}/requirements.txt"
+    else
+        einfo 'Loading virtualenv ...'
+        . "${venv_dir}/bin/activate"
+    fi
+}
+
+handler_local() {
+    # Ansible's `become_user` will break when we run as root `./runner local` unless we override the
+    # interpreter path to any other `python3` that is not within the conf-mgmt's venv.
+    for python3_path in $(which -a python3); do
+        case "${python3_path}" in
+            "${venv_dir}"/*)
+                continue
+            ;;
+            *)
+                export ANSIBLE_PYTHON_INTERPRETER="${python3_path}"
+                break
+            ;;
+        esac
+    done
+
+    playbook="${1:-$(hostname).yml}"
+    ansible-playbook --limit 'localhost' -i 'localhost,' --connection local "${playbook}"
+}
+
+
+handler_remote() {
+    playbook="$1"
+    target="${2:-}"
+
+    if ! [ "${target}" ]; then
+        target_user="root"
+        target_host="${playbook%.yml}"
+    else
+        target_args=( ${target//@/ } )
+        case "${#target_args[@]}" in
+            2)
+                target_user="${target_args[0]}"
+                target_host="${target_args[1]}"
+            ;;
+            1)
+                
+                target_user="root"
+                target_host="${target_args[0]}"
+            ;;
+            *)
+                edie "Invalid remote target."
+            ;;
+        esac
+    fi
+
+    ansible-playbook --limit "${target_host}" -i "${target_host}," --connection ssh -u "${target_user}" "${playbook}"
+}
+
+
+case "${1:-}" in
+    'local'|'remote')
+        handler="handler_${1}"
+        shift
+    ;;
+    *)
+        edie "Unsupported action."
+    ;;
+esac
+
+setup_and_load_venv
+"${handler}" "$@"

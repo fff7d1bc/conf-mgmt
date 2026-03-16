@@ -1,0 +1,5 @@
+- include_role:
+    name: "{{ meta_role.key }}"
+  loop: "{{ (confmgmt | default({})) | dict2items }}"
+  loop_control:
+    loop_var: meta_role

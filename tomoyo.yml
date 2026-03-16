@@ -1,0 +1,59 @@
+#!/usr/bin/env ansible-playbook
+
+- name: tomoyo
+  gather_facts: true
+  gather_subset:
+    - min
+  hosts: [all]
+  vars:
+    confmgmt:
+      rpm_ostree:
+        packages:
+          - zsh
+          - syncthing
+          - htop
+          - jetbrains-mono-fonts-all
+          - vim
+          - tailscale
+          - lm_sensors
+          - docker-cli
+          - virt-manager
+          - btop
+        kargs:
+          - amdgpu.abmlevel=0
+        system_groups:
+          - docker
+          - libvirt
+      flatpak:
+        packages:
+          - org.wezfurlong.wezterm
+          - io.github.ilya_zlobintsev.LACT
+      homebrew:
+        user: piotr
+        formulas:
+          - ffmpeg
+          - svt-av1
+          - borgbackup
+          - mkvtoolnix
+          - rust
+          - rclone
+          - yt-dlp
+          - mpv
+          - ripgrep
+      sshd: 
+      sddm:
+      home_files:
+        overrides:
+          wezterm:
+            font_size: 13
+        files:
+          root:
+            - zsh
+            - tmux
+          piotr:
+            - zsh
+            - mpv
+            - wezterm
+            - tmux
+  roles:
+    - role: meta

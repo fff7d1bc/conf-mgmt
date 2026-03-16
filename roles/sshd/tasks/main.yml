@@ -1,0 +1,20 @@
+- name: sshd
+  tags: [sshd]
+  block:
+  - name: prohibit auth with password
+    copy: 
+      dest: /etc/ssh/sshd_config.d/99-auth.conf
+      owner: root
+      group: root
+      mode: 600
+      content: |
+        PermitRootLogin prohibit-password
+        PasswordAuthentication no
+        ChallengeResponseAuthentication no
+    notify: restart sshd
+
+  - name: autostart sshd 
+    systemd_service:
+      name: sshd
+      enabled: true
+      masked: no

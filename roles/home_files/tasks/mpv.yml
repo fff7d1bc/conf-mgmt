@@ -1,0 +1,19 @@
+- name: ~/.config/mpv directory
+  file:
+    state: directory
+    path: '{{ home }}/.config/mpv'
+    owner: '{{ uid }}'
+    group: '{{ gid }}'
+    mode: 0700
+
+- name: ~/.config/mpv files
+  copy:
+    src: mpv/{{ item }}
+    dest: '{{ home }}/.config/mpv/{{ item }}'
+    owner: '{{ uid }}'
+    group: '{{ gid }}'
+    mode: 0600
+  with_items:
+    - config
+    - input.conf
+    - adaptive-sharpen-luma.glsl

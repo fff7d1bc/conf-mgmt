@@ -1,0 +1,81 @@
+#!/usr/bin/env ansible-playbook
+
+- name: seravee
+  gather_facts: true
+  gather_subset:
+    - min
+  hosts: [all]
+  vars:
+    confmgmt:
+      homebrew:
+        user: piotr
+        formulas:
+          - aria2
+          - borgbackup
+          - colordiff
+          - coreutils
+          - moreutils
+          - findutils
+          - gawk
+          - gnu-sed
+          - gnu-tar
+          - grep
+          - htop
+          - ipython
+          - jc
+          - jq
+          - lftp
+          - lz4
+          - mpv
+          - ncdu
+          - nmap
+          - nvm
+          - p7zip
+          - pip-tools
+          - pipx
+          - poetry
+          - pv
+          - pwgen
+          - qrencode
+          - qpdf
+          - rclone
+          - ripgrep
+          - rsync
+          - scrcpy
+          - socat
+          - sshuttle
+          - telnet
+          - tmux
+          - tox
+          - wget
+          - wgetpaste
+          - xz
+          - yt-dlp
+          - zstd
+          - vim
+        casks:
+          - alt-tab
+          - firefox
+          - font-jetbrains-mono
+          - gimp
+          - iina
+          - keepassxc
+          - libreoffice
+          - linearmouse
+          - localsend
+          - monitorcontrol
+          - opera
+          - rancher
+          - rectangle
+          - stats
+          - syncthing-app
+          - wezterm
+      home_files:
+        files:
+          piotr:
+            - zsh
+            - mpv
+            - wezterm
+            - tmux
+  roles:
+    - role: meta

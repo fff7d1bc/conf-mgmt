@@ -1,0 +1,7 @@
+- name: ~/.wezterm.lua
+  copy:
+    src: wezterm/DOTwezterm.lua
+    dest: '{{ home }}/.wezterm.lua'
+    owner: '{{ uid }}'
+    group: '{{ gid }}'
+    mode: 0600

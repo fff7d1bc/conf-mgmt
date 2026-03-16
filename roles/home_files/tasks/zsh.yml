@@ -1,0 +1,7 @@
+- name: .zshrc deployment for {{ user }}
+  copy:
+    src: zsh/DOTzshrc
+    dest: '{{ home }}/.zshrc'
+    owner: '{{ uid }}'
+    group: '{{ gid }}'
+    mode: 0600

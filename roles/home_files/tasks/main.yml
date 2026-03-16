@@ -1,0 +1,62 @@
+- name: home_files
+  tags: [home_files]
+  block:
+    - name: Build list of usernames
+      set_fact:
+        home_files_usernames: "{{ confmgmt.home_files.files | default({}) | dict2items | map(attribute='key') | list }}"
+
+    # Extract user details in a way that works on both MacOS and Linux.
+    # Notes:
+    #   - MacOS lacks `getent`, so Ansible’s getent_passwd won’t work there.
+    #   - coreutils's `id` does not support '-P' unlike uutils’s, so `id -P` would work only on some
+    #     Linux systems like new Ubuntu releases that default to uutils.
+    #   - The field count differ between MacOS and Linux, even with uutils's `id -P` on Linux.
+    #   - The `id` is called over its full path to avoid accidentally using homebrew-installeds
+    #     coreutils's `id` on MacOS.
+    # Hence this approach.
+    - name: Gather users details
+      changed_when: False
+      with_items: '{{ home_files_usernames }}'
+      register: users_query
+      shell: |
+        (getent passwd {{ item }} 2>/dev/null || /usr/bin/id -P {{ item }} 2>/dev/null) \
+        | jq -M -r -R '
+          split(":") |
+            { user: .[0],
+              uid:  (.[2]|tonumber),
+              gid:  (.[3]|tonumber),
+              home: (if length == 10 then .[8] else .[5] end) 
+            }
+        ' 
+
+    - name: Build users details map
+      loop: "{{ users_query.results }}"
+      vars:
+        details: "{{ item.stdout | from_json }}"
+      set_fact:
+        users_details: '{{ users_details | default({}) | combine({ details["user"]: details }) }}'
+
+    - name: Validate users data
+      loop: "{{ users_details | dict2items }}"
+      assert:
+        that:
+          - item.value.uid is number
+          - item.value.gid is number
+          - item.value.home.startswith("/")
+          - item.value.user is match('^[A-Za-z0-9]+$')
+
+    - name: Include dotfile tasks
+      loop: "{{ (confmgmt.home_files.files | default({})) | dict2items | subelements('value') }}"
+      loop_control:
+        loop_var: pair
+        label: "{{ pair.0.key }} -> {{ pair.1 }}"
+      vars:
+        user: '{{ pair.0.key }}'
+        home: '{{ users_details[user]["home"] }}'
+        uid: '{{ users_details[user]["uid"] }}'
+        gid: '{{ users_details[user]["gid"] }}'
+        dotfile:  "{{ pair.1 }}"
+        overrides: "{{ (confmgmt.home_files.overrides | default({})).get(dotfile, None) }}"
+      include_tasks:
+        file: "{{ dotfile }}.yml"
+

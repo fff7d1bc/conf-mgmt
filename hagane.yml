@@ -1,0 +1,40 @@
+#!/usr/bin/env ansible-playbook
+
+- name: hagane
+  gather_facts: true
+  gather_subset:
+    - min
+  hosts: [all]
+  vars:
+    confmgmt:
+      homebrew:
+        user: piotr
+        formulas:
+          - ffmpeg
+          - svt-av1
+          - borgbackup
+          - mkvtoolnix
+          - rust
+          - rclone
+          - yt-dlp
+      apt:
+        packages:
+          - acl
+          - aria2
+          - avahi-daemon
+          - wireguard
+          - net-tools
+      sshd: 
+      pam:
+      udev:
+      home_files:
+        files:
+          root:
+            - zsh
+            - tmux
+          piotr:
+            - zsh
+            - mpv
+            - tmux
+  roles:
+    - role: meta

@@ -1,0 +1,43 @@
+- name: rpm-ostree
+  tags: [rpm_ostree]
+  block:
+  - name: rpm-ostree metadata refresh
+    shell: rpm-ostree refresh-md
+    register: rpm_ostree_metadata_refresh_results
+    changed_when: rpm_ostree_metadata_refresh_results.stdout_lines | select('search', '^Updating metadata for') | list | length > 0
+
+  - name: rpm-ostree upgrade
+    shell: rpm-ostree upgrade
+    register: rpm_ostree_upgrade_results
+    changed_when: rpm_ostree_upgrade_results.stdout_lines | select('search', '^Staging deployment') | list | length > 0
+
+  - name: rpm-ostree packages
+    when: confmgmt.rpm_ostree.packages is defined
+    community.general.rpm_ostree_pkg:
+      name: "{{ confmgmt.rpm_ostree.packages }}"
+      apply_live: False
+      state: present
+
+  - name: rpm-ostree kargs
+    when: confmgmt.rpm_ostree.packages is defined and (('=' in item) and ((ansible_facts.proc_cmdline[(item | split('=', 1))[0]] | default(None)) != (item | split('=', 1))[1])) or (('=' not in item) and ((ansible_facts.proc_cmdline[item] | default(false)) != true))
+    shell: rpm-ostree kargs --append-if-missing {{ item | quote }}
+    with_items: "{{ confmgmt.rpm_ostree.kargs }}"
+
+  # FIXME:
+  #   This code backfires when `getent groups` returns 2 entries.
+  #   It might be better to  `slurp` /etc/group and /usr/lib/group with .splitlines()
+  #   and then have `lineinfile` with `when` the ^{{ item }}: is not prsent in etc_group_lines 
+  - name: getent groups
+    when: confmgmt.rpm_ostree.system_groups is defined
+    getent:
+      database: group
+
+  - name: Cast selected groups from immutable /usr/lib/group to muttable /etc/group
+    when: confmgmt.rpm_ostree.system_groups is defined
+    lineinfile:
+      dest: /etc/group
+      regexp: '^{{ item }}:'
+      # getent_group elements are either alist of strings, or list of lists of strings if exactly same entries are found in /usr/lib/group and /etc/group.
+      line: "{{ item }}:{{ (ansible_facts.getent_group[item][0] is not string) | ternary(ansible_facts.getent_group[item][0], ansible_facts.getent_group[item]) | join(':') }}"
+      state: present
+    with_items: "{{ confmgmt.rpm_ostree.system_groups }}"

@@ -1,0 +1,7 @@
+- name: .tmux.conf deployment for {{ user }}
+  copy:
+    src: tmux/DOTtmux.conf
+    dest: '{{ home }}/.tmux.conf'
+    owner: '{{ uid }}'
+    group: '{{ gid }}'
+    mode: 0600

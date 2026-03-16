@@ -1,0 +1,16 @@
+- name: apt
+  tags: [apt]
+  block:
+    - name: apt dist-upgrade
+      apt:
+        update_cache: True
+        autoclean: True
+        autoremove: True
+        upgrade: dist
+
+    - name: apt packages
+      when: confmgmt.apt.packages is defined
+      apt:
+        name: "{{ confmgmt.apt.packages }}"
+        update_cache: True
+        state: present
