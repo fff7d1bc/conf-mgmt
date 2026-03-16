@@ -205,7 +205,7 @@ startx() {
 
 termtitle() {
     case "$TERM" in
-        rxvt*|xterm*|nxterm|gnome|screen|screen-*|st|st-*|tmux*)
+        'xterm-256color'|'tmux-256color')
             local prompt_host="${(%):-%m}"
             local prompt_user="${(%):-%n}"
             local prompt_char="${(%):-%~}"
