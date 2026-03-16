@@ -463,29 +463,6 @@ _history_search_with_fzy() {
 zle -N _history_search_with_fzy
 bindkey "^T" _history_search_with_fzy
 
-# ^A to open new terminal in current working directory
-# Check `logname` so we won't create new terminal as user after `su`.
-_open_new_terminal_here(){
-    if \
-        [ "${XAUTHORITY}" ] && \
-        [ "${DISPLAY}" ] && \
-        [ "${LOGNAME}" = "$(logname)" ] && \
-        command -v urxvt >/dev/null 2>&1
-    then
-        # Spawn terminal with clean login shell.
-        env -i \
-            XAUTHORITY="${XAUTHORITY}" \
-            PATH="${PATH}" \
-            HOME="${HOME}" \
-            DISPLAY="${DISPLAY}" \
-            LOGNAME="${LOGNAME}" \
-            SHELL="${SHELL}" \
-            LANG="${LANG}" \
-            urxvt -e "${SHELL}" --login >/dev/null 2>&1 &!
-    fi
-}
-zle -N _open_new_terminal_here
-bindkey "^A" _open_new_terminal_here
 
 # Aliases
 alias cp='cp -iv'
