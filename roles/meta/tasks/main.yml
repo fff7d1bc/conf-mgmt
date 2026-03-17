@@ -1,4 +1,9 @@
-- include_role:
+- name: locals fact from locals.yml
+  set_fact:
+    locals: "{{ lookup('file', 'locals.yml', errors='ignore') | from_yaml }}"
+
+- name: include roles
+  include_role:
     name: "{{ meta_role.key }}"
   loop: "{{ (confmgmt | default({})) | dict2items }}"
   loop_control:
