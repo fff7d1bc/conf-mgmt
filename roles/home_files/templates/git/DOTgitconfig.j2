@@ -1,0 +1,26 @@
+[user]
+	name = {{ locals.git.name | default("unset") }}
+	email = {{ locals.git.email | default("unset") }}
+
+[color]
+	ui = auto
+
+[log]
+	date = iso
+
+[alias]
+	c = commit --verbose
+	ca = commit --verbose --all
+	s = status --short
+	l = log --color --graph --pretty=format:'%C(yellow)%h%Creset%C(bold green)%d%Creset %s %Creset'
+	ll = log --pretty=fuller
+	root = rev-parse --show-toplevel
+
+[push]
+	default = simple
+
+[pull]
+	ff = only
+
+[init]
+	defaultBranch = master

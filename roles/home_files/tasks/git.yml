@@ -1,0 +1,7 @@
+- name: .gitconfig deployment for {{ user }}
+  template:
+    src: git/DOTgitconfig.j2
+    dest: '{{ home }}/.gitconfig'
+    owner: '{{ uid }}'
+    group: '{{ gid }}'
+    mode: 0600
