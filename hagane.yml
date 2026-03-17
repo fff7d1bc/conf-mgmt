@@ -33,9 +33,11 @@
           root:
             - zsh
             - tmux
+            - git
           piotr:
             - zsh
             - mpv
             - tmux
+            - git
   roles:
     - role: meta

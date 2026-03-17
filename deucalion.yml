@@ -43,10 +43,12 @@
           root:
             - zsh
             - tmux
+            - git
           piotr:
             - zsh
             - mpv
             - wezterm
             - tmux
+            - git
   roles:
     - role: meta

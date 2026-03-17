@@ -77,5 +77,6 @@
             - mpv
             - wezterm
             - tmux
+            - git
   roles:
     - role: meta

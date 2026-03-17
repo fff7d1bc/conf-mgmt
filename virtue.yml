@@ -40,10 +40,12 @@
           root:
             - zsh
             - tmux
+            - git
           bazzite:
             - zsh
             - mpv
             - wezterm
             - tmux
+            - git
   roles:
     - role: meta

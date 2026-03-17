@@ -100,5 +100,6 @@
             - zsh
             - mpv
             - wezterm
+            - git
   roles:
     - role: meta
