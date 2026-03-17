@@ -13,6 +13,7 @@
           - syncthing
           - htop
           - jetbrains-mono-fonts-all
+          - firejail
         kargs:
           - amdgpu.abmlevel=0
         system_groups:

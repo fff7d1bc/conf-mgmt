@@ -24,6 +24,7 @@
           - avahi-daemon
           - wireguard
           - net-tools
+          - firejail
       sshd: 
       pam:
       udev:
