@@ -1,0 +1,25 @@
+#!/usr/bin/env ansible-playbook
+
+- name: steamdeck
+  gather_facts: true
+  gather_subset:
+    - min
+  hosts: [all]
+  vars:
+    confmgmt:
+      homebrew:
+        user: deck
+        formulas:
+          - fzy
+          - rclone
+          - yt-dlp
+          - mpv
+      sshd:
+      home_files:
+        files:
+          deck:
+            - zsh
+            - mpv
+            - tmux
+  roles:
+    - role: meta
