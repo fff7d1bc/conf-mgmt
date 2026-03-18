@@ -25,6 +25,7 @@
       homebrew:
         user: piotr
         formulas:
+          - fzy
           - ffmpeg
           - svt-av1
           - borgbackup

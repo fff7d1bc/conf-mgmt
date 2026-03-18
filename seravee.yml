@@ -10,6 +10,7 @@
       homebrew:
         user: piotr
         formulas:
+          - fzy
           - aria2
           - borgbackup
           - colordiff

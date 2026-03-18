@@ -23,6 +23,7 @@
       homebrew:
         user: bazzite
         formulas:
+          - fzy
           - ffmpeg
           - svt-av1
           - borgbackup
@@ -31,7 +32,8 @@
           - rclone
           - yt-dlp
           - mpv
-      sshd: 
+      sshd:
+      sddm:
       home_files:
         overrides:
           wezterm:

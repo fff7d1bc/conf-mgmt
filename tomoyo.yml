@@ -9,6 +9,7 @@
     confmgmt:
       rpm_ostree:
         packages:
+          - fzy
           - zsh
           - syncthing
           - htop
