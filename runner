@@ -25,7 +25,7 @@ cd "${work_dir}"
 
 
 einfo() {
-    echo "[INFO] >>> $*"
+    echo "[INFO] >>> $*" >&2
 }
 
 
@@ -40,9 +40,15 @@ edie() {
 }
 
 
+run() {
+    einfo "Running $*"
+    "$@"
+}
+
+
 setup_and_load_venv() {
     if ! [ -d "${venv_dir}" ] || ! cmp "${work_dir}/requirements.txt" "${venv_dir}/requirements.txt"; then
-        einfo 'Setting up new virtualenv ...'
+        einfo 'Setting up new virtualenv'
         rm -rf "${venv_dir}"
         mkdir -p "${venv_dir}"
         python3 -m venv "${venv_dir}"
@@ -50,12 +56,15 @@ setup_and_load_venv() {
         pip install -r "${work_dir}/requirements.txt"
         cp "${work_dir}/requirements.txt" "${venv_dir}/requirements.txt"
     else
-        einfo 'Loading virtualenv ...'
+        einfo 'Loading virtualenv'
         . "${venv_dir}/bin/activate"
     fi
 }
 
 handler_local() {
+    local playbook
+    local python3_path
+
     # Ansible's `become_user` will break when we run as root `./runner local` unless we override the
     # interpreter path to any other `python3` that is not within the conf-mgmt's venv.
     for python3_path in $(which -a python3); do
@@ -71,13 +80,13 @@ handler_local() {
     done
 
     playbook="${1:-$(hostname).yml}"
-    ansible-playbook --limit 'localhost' -i 'localhost,' --connection local "${playbook}"
+    run ansible-playbook --limit 'localhost' -i 'localhost,' --connection local "${playbook}"
 }
 
 
 handler_remote() {
-    playbook="$1"
-    target="${2:-}"
+    local playbook="$1"
+    local target="${2:-}"
 
     if ! [ "${target}" ]; then
         target_user="root"
@@ -100,7 +109,7 @@ handler_remote() {
         esac
     fi
 
-    ansible-playbook --limit "${target_host}" -i "${target_host}," --connection ssh -u "${target_user}" "${playbook}"
+    run ansible-playbook --limit "${target_host}" -i "${target_host}," --connection ssh -u "${target_user}" "${playbook}"
 }
 
 
@@ -116,3 +125,4 @@ esac
 
 setup_and_load_venv
 "${handler}" "$@"
+einfo 'Done'
