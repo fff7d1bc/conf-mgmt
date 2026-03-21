@@ -1,5 +1,10 @@
 #.zshrc
 
+# run ZPROF=1 zsh for profiling.
+if [ "${ZPROF}" ]; then
+    zmodload zsh/zprof
+fi
+
 # Basic zsh config.
 umask 077
 ZDOTDIR=${ZDOTDIR:-${HOME}}
@@ -570,4 +575,9 @@ if [ "$(grep -E -A 1 "^### end of .zshrc" ~/.zshrc | wc -l)" -gt 1 ]; then
     echo "[WARNING] .zshrc: You have some lines after end of file marker in .zshrc, consider moving them to .zshrc.local" >&2
 fi
 if [ -f ~/.zshrc.local ]; then . ~/.zshrc.local; fi
+
+if [ "${ZPROF}" ]; then
+    zprof
+fi
+
 ### end of .zshrc
