@@ -45,12 +45,10 @@ add_to_PATH() {
 remove_from_PATH() {
     local prefix="$1"
     local path_item
-    local -a path_orig
     local -a path_new
 
-    path_orig=( "${(@s/:/)PATH}" )
 
-    for path_item in "${path_orig[@]}"; do
+    for path_item in "${path[@]}"; do
         [[ $path_item == ${prefix} || $path_item == ${prefix}/* ]] && continue
         path_new+=( "$path_item" )
     done
