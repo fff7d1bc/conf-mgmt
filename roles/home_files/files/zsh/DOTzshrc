@@ -362,7 +362,14 @@ done
 
 # Completion.
 autoload -Uz compinit
-compinit -u
+
+# Re-initialize compinit only if the cache is >8h old.
+if [[ -n ${ZDOTDIR}/.zcompdump(#qN.mh+8) ]]; then
+    compinit -u
+else
+    compinit -u -C
+fi
+
 zstyle ':completion:*' matcher-list 'm:{a-z}={A-Z}'
 zstyle ':completion:*' completer _expand _complete _ignored _approximate
 zstyle ':completion:*' menu select=2
