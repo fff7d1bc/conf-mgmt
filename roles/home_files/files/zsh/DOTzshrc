@@ -1,4 +1,4 @@
-# .zshrc
+#.zshrc
 
 # Basic zsh config.
 umask 077
@@ -20,52 +20,90 @@ if [ ! -d "${TMP}" ]; then mkdir "${TMP}"; fi
 export TMUX_TMPDIR="${TMPDIR}/tmux-${HOST}-${UID}"
 if [ ! -d "${TMUX_TMPDIR}" ]; then mkdir -p "${TMUX_TMPDIR}"; fi
 
-add-to-path() {
-    target="$1"
+add_to_PATH() {
+    local target="$1"
 
     if [[ ":${PATH}:" == *":${target}:"*  ]]; then
-        return
+        return 0
     fi
 
     if ! [ -d "${target}" ]; then
-        return
-    fi
-
-    # Portable check for whatever owner is either root or current user.
-    if ! find "${target}" -maxdepth 0 \( -user root -o -user "$(id -u)" \) >/dev/null 2>&1; then
-        return
+        return 1
     fi
 
     export PATH="${target}:${PATH}"
 }
 
-add-to-path "${HOME}/.nix-profile/bin"
-add-to-path "${HOME}/.local/bin"
-add-to-path "${HOME}/.rd/bin"
+remove_from_PATH() {
+    local prefix="$1"
+    local path_item
+    local -a path_orig
+    local -a path_new
 
-# Add homebrew only on non-root users and do not double load it
-if ! [ "$(id -u)" = 0 ] && ! [[ ":${PATH}:" == :*"brew/bin"*: ]]; then
-    add-to-path /opt/homebrew/bin
-    add-to-path /home/linuxbrew/.linuxbrew/bin
+    path_orig=( "${(@s/:/)PATH}" )
 
-    if command -v brew >/dev/null 2>&1; then
-        eval "$(brew shellenv)"
+    for path_item in "${path_orig[@]}"; do
+        [[ $path_item == ${prefix} || $path_item == ${prefix}/* ]] && continue
+        path_new+=( "$path_item" )
+    done
 
-        brew_prefix="$(brew --prefix)"
-        for directory in "${brew_prefix}"/opt/*/libexec/gnubin(N); do
-            add-to-path "${directory}"
-        done
+    export PATH="${(j/:/)path_new}"
+}
 
-        # Requires right permissions:
-        #     chmod go-w "${brew_prefix}/share"
-        #     chmod -R go-w "${brew_prefix}/share/zsh"
-        FPATH="${brew_prefix}/share/zsh/site-functions/:${brew_prefix}/share/zsh-completions/:${FPATH}"
+setup_homebrew() {
+    local current_user="$(id -u)"
+    local homebrew_base_dir
+
+    for i in /opt/homebrew /home/linuxbrew/.linuxbrew; do
+        if [ -d "$i" ]; then
+            homebrew_base_dir="$i"
+            break
+        fi
+    done
+
+    if ! [ "${homebrew_base_dir}" ]; then
+        return 0
     fi
-fi
+
+    # Portable check for whatever owner is either root or current user.
+    if ! [ "$(find "${homebrew_base_dir}" -maxdepth 0 \( -user root -o -user "${current_user}" \) 2>/dev/null)" ]; then
+        # If neither root or us own the homebrew directory, clean it out of the PATH if it was added
+        # for example by /etc/profile.d/* scripts.
+        remove_from_PATH "${homebrew_base_dir}"
+        return 0
+    fi
+
+	if ! [[ ":${PATH}:" == :"${homebrew_base_dir}"/*: ]]; then
+	    add_to_PATH "${homebrew_base_dir}/bin"
+	    add_to_PATH "${homebrew_base_dir}/sbin"
+    fi
+
+    if ! command -v brew >/dev/null 2>&1; then
+        return 0
+    fi
+
+    # load homebrew shell variables without touching PATH.
+    eval "$(brew shellenv | grep -Ev '\<PATH=')"
+
+    for directory in "${homebrew_base_dir}"/opt/*/libexec/gnubin(N); do
+        add_to_PATH "${directory}"
+    done
+
+    # Requires right permissions:
+    #     chmod go-w "${homebrew_base_dir}/share"
+    #     chmod -R go-w "${homebrew_base_dir}/share/zsh"
+    FPATH="${homebrew_base_dir}/share/zsh/site-functions/:${homebrew_base_dir}/share/zsh-completions/:${FPATH}"
+}
+
+add_to_PATH "${HOME}/.nix-profile/bin"
+add_to_PATH "${HOME}/.local/bin"
+add_to_PATH "${HOME}/.rd/bin"
+
+setup_homebrew
 
 # Add home's bin directory as last, so it can be used for overrides, like linking
 # ~/bin/python3 to /usr/bin/python3 to use system python over brew's one.
-add-to-path "${HOME}/bin"
+add_to_PATH "${HOME}/bin"
 
 # Colors.
 red='\e[0;31m'
@@ -317,7 +355,7 @@ done
 
 # Completion.
 autoload -Uz compinit
-compinit
+compinit -u
 zstyle ':completion:*' matcher-list 'm:{a-z}={A-Z}'
 zstyle ':completion:*' completer _expand _complete _ignored _approximate
 zstyle ':completion:*' menu select=2
