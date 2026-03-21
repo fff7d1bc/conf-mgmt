@@ -52,10 +52,12 @@
             font_size: 13
         files:
           root:
+            - bash
             - zsh
             - tmux
             - git
           piotr:
+            - bash
             - zsh
             - mpv
             - wezterm

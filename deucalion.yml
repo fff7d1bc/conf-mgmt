@@ -37,15 +37,14 @@
       sshd: 
       sddm:
       home_files:
-        overrides:
-          wezterm:
-            font_size: 12
         files:
           root:
+            - bash
             - zsh
             - tmux
             - git
           piotr:
+            - bash
             - zsh
             - mpv
             - wezterm

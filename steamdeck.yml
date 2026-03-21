@@ -18,6 +18,7 @@
       home_files:
         files:
           deck:
+            - bash
             - zsh
             - mpv
             - tmux

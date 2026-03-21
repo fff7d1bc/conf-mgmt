@@ -35,15 +35,14 @@
       sshd:
       sddm:
       home_files:
-        overrides:
-          wezterm:
-            font_size: 13
         files:
           root:
+            - bash
             - zsh
             - tmux
             - git
           bazzite:
+            - bash
             - zsh
             - mpv
             - wezterm

@@ -1,0 +1,7 @@
+- name: .bashrc deployment for {{ user }}
+  copy:
+    src: bash/DOTbashrc
+    dest: '{{ home }}/.bashrc'
+    owner: '{{ uid }}'
+    group: '{{ gid }}'
+    mode: 0600

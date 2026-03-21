@@ -74,6 +74,7 @@
       home_files:
         files:
           piotr:
+            - bash
             - zsh
             - mpv
             - wezterm

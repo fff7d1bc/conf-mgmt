@@ -1,0 +1,10 @@
+# Graceful handover from bash to zsh.
+# Only if the shell is interactive, .zshrc exist in home directory and parent is not zsh.
+if [[ $- == *i* ]]; then
+    parent_comm="$(ps -p "$PPID" -o comm= 2>/dev/null)"
+    parent_comm="${parent_comm#-}"
+
+    if [[ "${parent_comm}" != "zsh" ]] && [[ -f "${HOME}/.zshrc" ]] && command -v zsh >/dev/null 2>&1; then
+        exec zsh
+    fi
+fi

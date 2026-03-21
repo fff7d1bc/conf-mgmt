@@ -32,10 +32,12 @@
       home_files:
         files:
           root:
+            - bash
             - zsh
             - tmux
             - git
           piotr:
+            - bash
             - zsh
             - mpv
             - tmux
