@@ -20,6 +20,8 @@
           - virt-manager
           - btop
           - firejail
+          - steam
+          - steam-devices
         kargs:
           - amdgpu.abmlevel=0
         system_groups:
