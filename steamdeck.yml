@@ -17,6 +17,10 @@
       sshd:
       home_files:
         files:
+          root:
+            - bash
+            - zsh
+            - tmux
           deck:
             - bash
             - zsh
