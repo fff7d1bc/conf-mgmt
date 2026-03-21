@@ -109,7 +109,7 @@ add_to_PATH "${HOME}/.rd/bin"
 setup_homebrew
 
 # Add home's bin directory as last, so it can be used for overrides, like linking
-# ~/bin/python3 to /usr/bin/python3 to use system python over brew's one.
+# /usr/bin/python3 into ~/bin/python3 to use system python over brew's one.
 add_to_PATH "${HOME}/bin"
 
 # Colors.
