@@ -9,7 +9,6 @@
     confmgmt:
       rpm_ostree:
         packages:
-          - fzy
           - zsh
           - syncthing
           - htop
@@ -42,6 +41,7 @@
           - yt-dlp
           - mpv
           - ripgrep
+          - fzy
       sshd: 
       sddm:
       home_files:
