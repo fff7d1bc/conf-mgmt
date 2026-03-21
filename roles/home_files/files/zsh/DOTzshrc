@@ -25,6 +25,9 @@ if [ ! -d "${TMP}" ]; then mkdir "${TMP}"; fi
 export TMUX_TMPDIR="${TMPDIR}/tmux-${HOST}-${UID}"
 if [ ! -d "${TMUX_TMPDIR}" ]; then mkdir -p "${TMUX_TMPDIR}"; fi
 
+# zstat
+zmodload zsh/stat
+
 add_to_PATH() {
     local target="$1"
 
@@ -61,12 +64,13 @@ dedupe_PATH() {
 }
 
 setup_homebrew() {
-    local current_user="$(id -u)"
+    local current_user_uid="${EUID}"
     local homebrew_base_dir
 
     for i in /opt/homebrew /home/linuxbrew/.linuxbrew; do
         if [ -d "$i" ]; then
             homebrew_base_dir="$i"
+            zstat -A homebrew_base_dir_uid +uid -- "${homebrew_base_dir}"
             break
         fi
     done
@@ -75,8 +79,7 @@ setup_homebrew() {
         return 0
     fi
 
-    # Portable check for whatever owner is either root or current user.
-    if ! [ "$(find "${homebrew_base_dir}" -maxdepth 0 \( -user root -o -user "${current_user}" \) 2>/dev/null)" ]; then
+    if ! [ "${homebrew_base_dir_uid}" = 0 ] && ! [ "${homebrew_base_dir_uid}" = "${current_user_uid}" ] ; then
         # If neither root or us own the homebrew directory, clean it out of the PATH if it was added
         # for example by /etc/profile.d/* scripts.
         remove_from_PATH "${homebrew_base_dir}"
