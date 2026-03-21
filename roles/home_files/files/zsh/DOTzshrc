@@ -50,6 +50,11 @@ remove_from_PATH() {
     export PATH="${(j/:/)path_new}"
 }
 
+dedupe_PATH() {
+    typeset -gU path
+    export PATH
+}
+
 setup_homebrew() {
     local current_user="$(id -u)"
     local homebrew_base_dir
@@ -94,6 +99,8 @@ setup_homebrew() {
     #     chmod -R go-w "${homebrew_base_dir}/share/zsh"
     FPATH="${homebrew_base_dir}/share/zsh/site-functions/:${homebrew_base_dir}/share/zsh-completions/:${FPATH}"
 }
+
+dedupe_PATH
 
 add_to_PATH "${HOME}/.nix-profile/bin"
 add_to_PATH "${HOME}/.local/bin"
