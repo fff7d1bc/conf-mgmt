@@ -5,3 +5,11 @@
     owner: '{{ uid }}'
     group: '{{ gid }}'
     mode: 0600
+
+- name: .bash_profile deployment for {{ user }}
+  copy:
+    src: bash/DOTbash_profile
+    dest: '{{ home }}/.bash_profile'
+    owner: '{{ uid }}'
+    group: '{{ gid }}'
+    mode: 0600
