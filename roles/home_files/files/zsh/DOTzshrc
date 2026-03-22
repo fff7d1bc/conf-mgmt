@@ -28,6 +28,25 @@ if [ ! -d "${TMUX_TMPDIR}" ]; then mkdir -p "${TMUX_TMPDIR}"; fi
 # zstat
 zmodload zsh/stat
 
+has_in_tree() {
+    # Usage:
+    #   has_in_tree <variable_name> <file_or_dir_name>
+    #   has_in_tree _dotgit_path .git
+
+    variable="$1"
+    target="$2"
+    : ${(P)variable::=}
+
+    local dir=${PWD:A}
+
+    until [[ -e "${dir}/${target}" ]]; do
+        [[ $dir == / ]] && return 1
+        dir=${dir:h}
+    done
+
+    : ${(P)variable::=${dir}/${target}}
+}
+
 add_to_PATH() {
     local target="$1"
 
@@ -273,37 +292,43 @@ termtitle() {
     esac
 }
 
-setup_git_prompt() {
-    if ! git rev-parse --is-inside-work-tree >/dev/null 2>&1; then
-        unset git_prompt
+_prompt_setup_git() {
+    git_prompt=''
+
+    local git_status_dirty
+    local git_status_stash
+    local git_head
+
+    if ! has_in_tree _dotgit_path .git; then
         return 0
     fi
 
-    local git_status_dirty git_status_stash git_branch
+    if (( ${${(s:/:)PWD}[(Ie).git]} )); then
+        return 0
+    fi
 
-    if [ "$(git --no-optional-locks status --untracked-files='no' --porcelain --ignore-submodules)" ]; then
+    read -r git_head < "${_dotgit_path}/HEAD"
+    git_head="${git_head#ref: refs/heads/}"
+    if [ "${#git_head}" -ge 24 ]; then
+        git_head="${git_head:0:21}..."
+    fi
+
+    if \
+        ! git --no-optional-locks diff --quiet --ignore-submodules || \
+        ! git --no-optional-locks diff --cached --quiet --ignore-submodules
+    then
         git_status_dirty='%F{green}*'
     else
-        unset git_status_dirty
+        git_status_dirty=''
     fi
 
-    if [ "$(git stash list)" ]; then
+    if git rev-parse --verify --quiet refs/stash >/dev/null; then
         git_status_stash="%F{yellow}▲"
     else
-        unset git_status_stash
+        git_status_stash=''
     fi
 
-    git_branch="$(git symbolic-ref HEAD 2>/dev/null)"
-    git_branch="${git_branch#refs/heads/}"
-
-    if [ "${#git_branch}" -ge 24 ]; then
-        git_branch="${git_branch:0:21}..."
-    fi
-
-    git_branch="${git_branch:-no branch}"
-
-    git_prompt=" %F{blue}[%F{253}${git_branch}${git_status_dirty}${git_status_stash}%F{blue}]"
-
+    git_prompt=" %F{blue}[%F{253}${git_head}${git_status_dirty}${git_status_stash}%F{blue}]"
 }
 
 precmd() {
@@ -311,7 +336,7 @@ precmd() {
     termtitle precmd
 
     # Set optional git part of prompt.
-    setup_git_prompt
+    _prompt_setup_git
 }
 
 preexec() {
