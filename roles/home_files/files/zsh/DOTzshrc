@@ -172,18 +172,6 @@ reload () {
     exec "${SHELL}" "$@"
 }
 
-confirm() {
-    local answer
-    echo -ne "zsh: sure you want to run '${YELLOW}$*${NC}' [yN]? "
-    read -q answer
-        echo
-    if [[ "${answer}" =~ ^[Yy]$ ]]; then
-        command "${@}"
-    else
-        return 1
-    fi
-}
-
 termtitle() {
     case "$TERM" in
         'xterm-256color'|'tmux-256color')
