@@ -195,13 +195,6 @@ cd() {
     fi
 }
 
-over_ssh() {
-    if [ -n "${SSH_CLIENT}" ]; then
-        return 0
-    else
-        return 1
-    fi
-}
 
 reload () {
     exec "${SHELL}" "$@"
@@ -354,22 +347,14 @@ zstyle ':completion:*' select-prompt '%SScrolling active: current selection at %
 zstyle ':completion::complete:*' use-cache 1
 zstyle ':completion:*:descriptions' format '%U%F{cyan}%d%f%u'
 
-# Fancy prompt.
-if over_ssh && [ -z "${TMUX}" ]; then
-    prompt_is_ssh='%F{blue}[%F{red}SSH%F{blue}] '
-elif over_ssh; then
-    prompt_is_ssh='%F{blue}[%F{253}SSH%F{blue}] '
-else
-    unset prompt_is_ssh
-fi
-
-case $USER in
-    root)
-        PROMPT='%B%F{cyan}%m%k %(?..%F{blue}[%F{253}%?%F{blue}] )${prompt_is_ssh}%B%F{blue}%1~${git_prompt}%F{blue} %# %b%f%k'
+# Prompt
+case "${EUID}" in
+    0)
+        PROMPT='%B%F{cyan}%m%k %(?..%F{blue}[%F{253}%?%F{blue}] )%B%F{blue}%1~${git_prompt}%F{blue} %# %b%f%k'
     ;;
 
     *)  
-        PROMPT='%B%F{blue}%n@%m%k %(?..%F{blue}[%F{253}%?%F{blue}] )${prompt_is_ssh}%B%F{cyan}%1~${git_prompt}%F{cyan} %# %b%f%k'
+        PROMPT='%B%F{blue}%n@%m%k %(?..%F{blue}[%F{253}%?%F{blue}] )%B%F{cyan}%1~${git_prompt}%F{cyan} %# %b%f%k'
 
     ;;
 esac
