@@ -417,11 +417,6 @@ if command -v terraform >/dev/null 2>&1; then
     fi
 fi
 
-# If running as root and nice >0, renice to 0.
-if [ "$USER" = 'root' ] && [ "$(cut -d ' ' -f 19 /proc/$$/stat)" -gt 0 ]; then
-    renice -n 0 -p "$$" && echo "# Adjusted nice level for current shell to 0."
-fi
-
 # Fancy prompt.
 if over_ssh && [ -z "${TMUX}" ]; then
     prompt_is_ssh='%F{blue}[%F{red}SSH%F{blue}] '
