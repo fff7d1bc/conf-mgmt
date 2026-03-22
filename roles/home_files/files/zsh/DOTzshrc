@@ -207,8 +207,8 @@ _prompt_setup_git() {
 
     read -r git_head < "${_dotgit_path}/HEAD"
     git_head="${git_head#ref: refs/heads/}"
-    if [ "${#git_head}" -ge 24 ]; then
-        git_head="${git_head:0:21}..."
+    if (( ${#git_head} > 24 )); then
+        git_head="${git_head[1,12]}…${git_head[-11,-1]}"
     fi
 
     if \
