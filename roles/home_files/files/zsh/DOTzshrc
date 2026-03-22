@@ -408,15 +408,6 @@ zstyle ':completion:*' select-prompt '%SScrolling active: current selection at %
 zstyle ':completion::complete:*' use-cache 1
 zstyle ':completion:*:descriptions' format '%U%F{cyan}%d%f%u'
 
-if command -v terraform >/dev/null 2>&1; then
-    autoload -U +X bashcompinit && bashcompinit
-    complete -o nospace -C $(command -v terraform) terraform
-
-    if command -v tf >/dev/null 2>&1; then
-        compdefas terraform tf
-    fi
-fi
-
 # Fancy prompt.
 if over_ssh && [ -z "${TMUX}" ]; then
     prompt_is_ssh='%F{blue}[%F{red}SSH%F{blue}] '
