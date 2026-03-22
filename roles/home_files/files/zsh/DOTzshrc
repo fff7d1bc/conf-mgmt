@@ -66,7 +66,6 @@ remove_from_PATH() {
     local path_item
     local -a path_new
 
-
     for path_item in "${path[@]}"; do
         [[ $path_item == ${prefix} || $path_item == ${prefix}/* ]] && continue
         path_new+=( "$path_item" )
@@ -172,7 +171,7 @@ reload () {
     exec "${SHELL}" "$@"
 }
 
-termtitle() {
+_termtitle() {
     case "$TERM" in
         'xterm-256color'|'tmux-256color')
             local prompt_host="${(%):-%m}"
@@ -232,7 +231,7 @@ _prompt_setup_git() {
 
 precmd() {
     # Set terminal title.
-    termtitle precmd
+    _termtitle precmd
 
     # Set optional git part of prompt.
     _prompt_setup_git
@@ -240,7 +239,7 @@ precmd() {
 
 preexec() {
     # Set terminal title along with current executed command pass as second argument
-    termtitle preexec "${(V)1}"
+    _termtitle preexec "${(V)1}"
 }
 
 man() {
