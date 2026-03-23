@@ -43,6 +43,14 @@ for _, mod in ipairs(mods) do
     mods = mod,
     action = wezterm.action.PasteFrom 'Clipboard',
   })
+  for i = 1, 9 do
+    table.insert(keys, {
+      key = tostring(i),
+      mods = mod,
+      action = wezterm.action.ActivateTab(i - 1),
+     }
+    )
+  end
 end
 
 return {
