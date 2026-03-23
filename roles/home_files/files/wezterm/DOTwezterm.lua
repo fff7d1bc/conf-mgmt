@@ -1,4 +1,4 @@
-local wezterm = require 'wezterm';
+local wezterm = require 'wezterm'
 
 wezterm.on("format-tab-title", function(tab, tabs, panes, config, hover, max_width)
   local title = tab.active_pane.title
@@ -22,6 +22,29 @@ wezterm.on("format-tab-title", function(tab, tabs, panes, config, hover, max_wid
   }
 end)
 
+local mods = {}
+if wezterm.target_triple:find('apple') then
+  mods = { 'CMD' }
+elseif wezterm.target_triple:find('linux') then
+  mods = { 'SUPER', 'ALT' }
+end
+
+local keys = {}
+for _, mod in ipairs(mods) do
+  table.insert(keys, {
+    key = 't',
+    mods = mod,
+    action = wezterm.action.SpawnCommandInNewTab {
+      cwd = wezterm.home_dir,
+    },
+  })
+  table.insert(keys, {
+    key = 'v',
+    mods = mod,
+    action = wezterm.action.PasteFrom 'Clipboard',
+  })
+end
+
 return {
   check_for_updates = false,
   font = wezterm.font("JetBrains Mono"),
@@ -29,18 +52,12 @@ return {
   initial_cols = 90,
   initial_rows = 20,
   hide_tab_bar_if_only_one_tab = true,
-
+  tab_bar_at_bottom = true,
+  tab_max_width = 128,
+  keys = keys,
   harfbuzz_features = {"calt=0", "clig=0", "liga=0"},
-
   color_scheme = 'Abernathy',
   colors = {
     background = '#090A0B'
   },
-
-  tab_bar_at_bottom = true,
-  -- use_fancy_tab_bar = false,
-  -- We will limit mas width in format-tab-title override.
-  tab_max_width = 128,
-
-
 }
