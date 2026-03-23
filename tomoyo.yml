@@ -29,8 +29,8 @@
           - libvirt
       flatpak:
         packages:
-          - org.wezfurlong.wezterm
           - io.github.ilya_zlobintsev.LACT
+          - it.mijorus.gearlever
       homebrew:
         user: piotr
         formulas:
@@ -47,9 +47,6 @@
       sshd: 
       sddm:
       home_files:
-        overrides:
-          wezterm:
-            font_size: 13
         files:
           root:
             - bash

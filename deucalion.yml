@@ -20,8 +20,8 @@
           - docker
       flatpak:
         packages:
-          - org.wezfurlong.wezterm
           - io.github.ilya_zlobintsev.LACT
+          - it.mijorus.gearlever
       homebrew:
         user: piotr
         formulas:
