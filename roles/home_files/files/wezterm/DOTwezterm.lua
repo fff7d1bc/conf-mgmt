@@ -56,7 +56,7 @@ end
 return {
   check_for_updates = false,
   font = wezterm.font("JetBrains Mono"),
-  font_size = 16.0,
+  font_size = 15.0,
   initial_cols = 90,
   initial_rows = 20,
   hide_tab_bar_if_only_one_tab = true,
