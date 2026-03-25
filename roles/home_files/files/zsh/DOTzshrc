@@ -424,23 +424,23 @@ bindkey "^T" _history_search_with_fzy
 
 
 # Aliases
-alias cp='cp -iv'
-alias rcp='rsync -v --progress'
-alias rmv='rsync -v --progress --remove-source-files'
-alias mv='mv -iv'
-alias rm='rm -iv'
-alias rmdir='rmdir -v'
-alias ln='ln -v'
-alias chmod="chmod -c"
-alias chown="chown -c"
-alias mkdir="mkdir -v"
-alias grep='grep --colour=auto'
-alias egrep='egrep --colour=auto'
-alias ls='ls --color=auto --human-readable --group-directories-first --classify'
-alias ll='ls --color=auto --human-readable --group-directories-first --classify -l'
-alias lla='ls --color=auto --human-readable --group-directories-first --classify -la'
 alias mc='mc --nosubshell'
-
+if ls --version >/dev/null 2>&1; then
+    # GNU coreutils and uutils coreutils.
+    alias cp='cp -iv'
+    alias mv='mv -iv'
+    alias rm='rm -iv'
+    alias rmdir='rmdir -v'
+    alias ln='ln -v'
+    alias chmod="chmod -c"
+    alias chown="chown -c"
+    alias mkdir="mkdir -v"
+    alias grep='grep --colour=auto'
+    alias egrep='egrep --colour=auto'
+    alias ls='ls --color=auto --human-readable --group-directories-first --classify'
+    alias ll='ls --color=auto --human-readable --group-directories-first --classify -l'
+    alias lla='ls --color=auto --human-readable --group-directories-first --classify -la'
+fi
 
 if command -v colordiff > /dev/null 2>&1; then
     alias diff="colordiff -Nuar"
