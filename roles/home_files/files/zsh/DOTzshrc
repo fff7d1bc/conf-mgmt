@@ -455,9 +455,11 @@ case "${TERM}" in
     'xterm-256color'|'tmux-256color')
         bindkey "[H" beginning-of-line #Home key
         bindkey "OH" beginning-of-line #Home key
+        bindkey "^[[1~" beginning-of-line #Home key
         
         bindkey "[F" end-of-line #End key
         bindkey "OF" end-of-line #End key
+        bindkey "^[[4~" end-of-line #End key
         
         bindkey "[3~" delete-char #Del key
 
