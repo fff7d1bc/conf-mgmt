@@ -1,0 +1,31 @@
+#!/usr/bin/env ansible-playbook
+
+- name: humble-t
+  gather_facts: true
+  gather_subset:
+    - min
+  hosts: [all]
+  vars:
+    confmgmt:
+      apt:
+        packages:
+          - fzy
+          - jq
+          - avahi-daemon
+          - net-tools
+      sshd: 
+      pam:
+      home_files:
+        files:
+          pi:
+            - bash
+            - zsh
+            - tmux
+            - git
+          root:
+            - bash
+            - zsh
+            - tmux
+            - git
+  roles:
+    - role: meta
