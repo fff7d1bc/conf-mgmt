@@ -7,6 +7,7 @@ Configuration as a code for operating systems, built around Ansible.
 - Fedora Kinoite (Fedora Atomic)
 - Bazzite (Fedora Atomic derivative)
 - Ubuntu
+- Raspberry Pi OS (Debian derivative)
 - MacOS
 
 ## Usage
