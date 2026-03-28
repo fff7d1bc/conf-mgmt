@@ -20,6 +20,7 @@
           - virt-manager
           - btop
           - firejail
+          - tmux
           - steam
           - steam-devices
         kargs:

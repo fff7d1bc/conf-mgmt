@@ -14,6 +14,7 @@
           - htop
           - jetbrains-mono-fonts-all
           - firejail
+          - tmux
         kargs:
           - amdgpu.abmlevel=0
         system_groups:
@@ -34,6 +35,7 @@
           - rclone
           - yt-dlp
           - mpv
+          - ab-av1
       sshd: 
       sddm:
       home_files:

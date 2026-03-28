@@ -13,6 +13,7 @@
           - jq
           - avahi-daemon
           - net-tools
+          - tmux
       sshd: 
       pam:
       home_files:

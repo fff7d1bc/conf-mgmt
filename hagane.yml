@@ -26,6 +26,7 @@
           - wireguard
           - net-tools
           - firejail
+          - tmux
       sshd: 
       pam:
       udev:
