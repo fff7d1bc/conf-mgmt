@@ -18,7 +18,7 @@
           - colordiff
           - coreutils
           - moreutils
-          - ffmpeg
+          - ffmpeg-full
           - findutils
           - golang
           - gawk

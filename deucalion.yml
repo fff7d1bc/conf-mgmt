@@ -27,7 +27,7 @@
         user: piotr
         formulas:
           - fzy
-          - ffmpeg
+          - ffmpeg-full
           - svt-av1
           - borgbackup
           - mkvtoolnix
