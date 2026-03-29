@@ -20,6 +20,16 @@
         name: "{{ confmgmt.homebrew.formulas }}"
         state: present
 
+    # This is a bit of a mess in Homebrew right now with new ffmpeg and ffmpeg-full split.
+    # Both might end up being installed and ffmpeg-full needs to be the one found in $PATH.
+    - name: link ffmpeg-full over ffmpeg
+      when: "'ffmpeg-full' in confmgmt.homebrew.formulas"
+      # This module always throws changed flag even if it was already linked.
+      changed_when: False
+      homebrew:
+        name: ffmpeg-full
+        state: linked
+
     - name: install homebrew casks 
       when: confmgmt.homebrew.casks is defined
       block:
