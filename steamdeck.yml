@@ -15,6 +15,7 @@
           - yt-dlp
           - mpv
           - tmux
+          - asdf
       sshd:
       home_files:
         files:

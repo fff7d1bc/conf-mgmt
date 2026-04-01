@@ -15,6 +15,7 @@
           - jetbrains-mono-fonts-all
           - firejail
           - tmux
+          - asdf
         kargs:
           - amdgpu.abmlevel=0
         system_groups:
