@@ -6,7 +6,7 @@
       dest: /etc/ssh/sshd_config.d/99-auth.conf
       owner: root
       group: root
-      mode: 600
+      mode: 0600
       content: |
         PermitRootLogin prohibit-password
         PasswordAuthentication no
