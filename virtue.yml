@@ -15,7 +15,6 @@
           - jetbrains-mono-fonts-all
           - firejail
           - tmux
-          - asdf
         kargs:
           - amdgpu.abmlevel=0
       flatpak:
@@ -34,6 +33,7 @@
           - rclone
           - yt-dlp
           - mpv
+          - asdf
       sshd:
       sddm:
       home_files:

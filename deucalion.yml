@@ -15,7 +15,6 @@
           - jetbrains-mono-fonts-all
           - firejail
           - tmux
-          - asdf
         kargs:
           - amdgpu.abmlevel=0
         system_groups:
@@ -37,6 +36,7 @@
           - yt-dlp
           - mpv
           - ab-av1
+          - asdf
       sshd: 
       sddm:
       home_files:
