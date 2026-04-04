@@ -50,7 +50,7 @@ has_in_tree() {
 add_to_PATH() {
     local target="$1"
 
-    if [[ ":${PATH}:" == *":${target}:"*  ]]; then
+    if (( ${path[(Ie)${target}]} )); then
         return 0
     fi
 
@@ -95,17 +95,17 @@ setup_homebrew() {
         return 0
     fi
 
-    if ! [ "${homebrew_base_dir_uid}" = 0 ] && ! [ "${homebrew_base_dir_uid}" = "${current_user_uid}" ] ; then
-        # If neither root or us own the homebrew directory, clean it out of the PATH if it was added
-        # for example by /etc/profile.d/* scripts.
-        remove_from_PATH "${homebrew_base_dir}"
+    # Clean all of homebrew from $PATH so it can be added in right order.
+    remove_from_PATH "${homebrew_base_dir}"
+
+    if ! [ "${homebrew_base_dir_uid}" = 0 ] && ! [ "${homebrew_base_dir_uid}" = "${current_user_uid}" ]; then
+        # Do not add homebrew if running as root or user that is not owner of homebrew directory.
         return 0
     fi
 
-	if ! [[ ":${PATH}:" == :"${homebrew_base_dir}"/*: ]]; then
-	    add_to_PATH "${homebrew_base_dir}/bin"
-	    add_to_PATH "${homebrew_base_dir}/sbin"
-    fi
+	add_to_PATH "${homebrew_base_dir}/bin"
+	add_to_PATH "${homebrew_base_dir}/sbin"
+
 
     if ! command -v brew >/dev/null 2>&1; then
         return 0
@@ -118,23 +118,29 @@ setup_homebrew() {
         add_to_PATH "${directory}"
     done
 
+    # Prefer ffmpeg-full over ffmpeg.
+    add_to_PATH "${homebrew_base_dir}/opt/ffmpeg-full/bin"
+
     # Requires right permissions:
     #     chmod go-w "${homebrew_base_dir}/share"
     #     chmod -R go-w "${homebrew_base_dir}/share/zsh"
     FPATH="${homebrew_base_dir}/share/zsh/site-functions/:${homebrew_base_dir}/share/zsh-completions/:${FPATH}"
 }
 
+
+# PATH configuration
 dedupe_PATH
 
-add_to_PATH "${HOME}/.nix-profile/bin"
-add_to_PATH "${HOME}/.local/bin"
-add_to_PATH "${HOME}/.rd/bin"
-
 setup_homebrew
+
+add_to_PATH "${HOME}/.nix-profile/bin"
+add_to_PATH "${HOME}/.rd/bin"
+add_to_PATH "${HOME}/.local/bin"
 
 # Add home's bin directory as last, so it can be used for overrides, like linking
 # /usr/bin/python3 into ~/bin/python3 to use system python over brew's one.
 add_to_PATH "${HOME}/bin"
+
 
 # Colors.
 red='\e[0;31m'
