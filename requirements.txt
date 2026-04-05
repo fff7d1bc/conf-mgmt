@@ -4,17 +4,17 @@
 #
 #    pip-compile
 #
-ansible==13.4.0
+ansible==13.5.0
     # via -r requirements.in
-ansible-core==2.20.3
+ansible-core==2.20.4
     # via ansible
-build==1.4.0
+build==1.4.2
     # via pip-tools
 cffi==2.0.0
     # via cryptography
-click==8.3.1
+click==8.3.2
     # via pip-tools
-cryptography==46.0.5
+cryptography==46.0.6
     # via ansible-core
 jinja2==3.1.6
     # via ansible-core
