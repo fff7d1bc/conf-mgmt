@@ -47,7 +47,7 @@ run() {
 
 
 setup_and_load_venv() {
-    if ! [ -d "${venv_dir}" ] || ! cmp "${work_dir}/requirements.txt" "${venv_dir}/requirements.txt"; then
+    if ! [ -d "${venv_dir}" ] || ! cmp "${work_dir}/requirements.txt" "${venv_dir}/requirements.txt" >/dev/null 2>&1; then
         einfo 'Setting up new virtualenv'
         rm -rf "${venv_dir}"
         mkdir -p "${venv_dir}"
