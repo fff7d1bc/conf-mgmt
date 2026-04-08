@@ -48,35 +48,28 @@ has_in_tree() {
 }
 
 add_to_PATH() {
-    local target="$1"
+    # Add directory to $PATH, if it is already there, move it to the front.
 
-    if (( ${path[(Ie)${target}]} )); then
-        return 0
-    fi
+    local target="$1"
 
     if ! [ -d "${target}" ]; then
         return 1
     fi
 
-    export PATH="${target}:${PATH}"
+    path=("$target" ${path:#$target})
 }
 
 remove_from_PATH() {
+    # Remove directories starting with $1 out of $PATH.
+
     local prefix="$1"
-    local path_item
-    local -a path_new
+    local pattern=${(b)prefix}
 
-    for path_item in "${path[@]}"; do
-        [[ $path_item == ${prefix} || $path_item == ${prefix}/* ]] && continue
-        path_new+=( "$path_item" )
-    done
-
-    export PATH="${(j/:/)path_new}"
+    path=(${path:#$~pattern(|/*)})
 }
 
 dedupe_PATH() {
     typeset -gU path
-    export PATH
 }
 
 setup_homebrew() {
@@ -95,11 +88,9 @@ setup_homebrew() {
         return 0
     fi
 
-    # Clean all of homebrew from $PATH so it can be added in right order.
-    remove_from_PATH "${homebrew_base_dir}"
-
-    if ! [ "${homebrew_base_dir_uid}" = 0 ] && ! [ "${homebrew_base_dir_uid}" = "${current_user_uid}" ]; then
-        # Do not add homebrew if running as root or user that is not owner of homebrew directory.
+    if ! [ "${homebrew_base_dir_uid}" = "${current_user_uid}" ]; then
+        # Remove homebrew from PATH if current user is not the owner of homebrew installation.
+        remove_from_PATH "${homebrew_base_dir}"
         return 0
     fi
 
