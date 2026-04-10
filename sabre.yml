@@ -62,6 +62,7 @@
           - yt-dlp
           - zstd
           - vim
+          - codex
         casks:
           - alfred
           - alt-tab

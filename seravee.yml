@@ -54,6 +54,7 @@
           - yt-dlp
           - zstd
           - vim
+          - codex
         casks:
           - alt-tab
           - firefox

@@ -45,6 +45,7 @@
           - mpv
           - ripgrep
           - fzy
+          - codex
       sshd: 
       sddm:
       home_files:

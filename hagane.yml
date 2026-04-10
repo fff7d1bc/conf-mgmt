@@ -17,6 +17,7 @@
           - rust
           - rclone
           - yt-dlp
+          - codex
       apt:
         packages:
           - fzy
