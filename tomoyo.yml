@@ -46,6 +46,8 @@
           - ripgrep
           - fzy
           - codex
+          - make
+          - golang
       sshd: 
       sddm:
       home_files:
