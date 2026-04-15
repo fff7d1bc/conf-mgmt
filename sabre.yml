@@ -104,5 +104,6 @@
             - mpv
             - wezterm
             - git
+            - tmux
   roles:
     - role: meta
