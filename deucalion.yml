@@ -37,6 +37,8 @@
           - mpv
           - ab-av1
           - asdf
+          - golang
+          - make
       sshd: 
       sddm:
       home_files:
