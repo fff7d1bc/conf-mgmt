@@ -193,12 +193,18 @@ _prompt_setup_git() {
     local git_status_dirty
     local git_status_stash
     local git_head
+    local dotgit_uid
 
     if ! has_in_tree _dotgit_path .git; then
         return 0
     fi
 
     if (( ${${(s:/:)PWD}[(Ie).git]} )); then
+        return 0
+    fi
+
+    # Ignore repos owned by a different user to avoid odd git behavior when root enters them.
+    if ! zstat -A dotgit_uid +uid -- "${_dotgit_path}" || ! [ "${dotgit_uid}" = "${EUID}" ]; then
         return 0
     fi
 
