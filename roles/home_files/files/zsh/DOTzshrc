@@ -480,10 +480,16 @@ case "${TERM}" in
     ;;
 esac
 
+_warn_if_zshrc_has_lines_after_end_marker() {
+    local -a zshrc_lines
+    zshrc_lines=("${(@f)$(< ~/.zshrc)}")
 
-if [ "$(grep -E -A 1 "^### end of .zshrc" ~/.zshrc | wc -l)" -gt 1 ]; then
-    echo "[WARNING] .zshrc: You have some lines after end of file marker in .zshrc, consider moving them to .zshrc.local" >&2
-fi
+    if [[ "${zshrc_lines[-1]}" != '### end of .zshrc' ]]; then
+        echo "[WARNING] .zshrc: You have some lines after end of file marker in .zshrc, consider moving them to .zshrc.local" >&2
+    fi
+}
+_warn_if_zshrc_has_lines_after_end_marker
+
 if [ -f ~/.zshrc.local ]; then . ~/.zshrc.local; fi
 
 if [ "${ZPROF}" ]; then
