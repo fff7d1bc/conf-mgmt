@@ -23,8 +23,13 @@ wezterm.on("format-tab-title", function(tab, tabs, panes, config, hover, max_wid
 end)
 
 local mods = {}
+local window_decorations = 'TITLE | RESIZE'
 if wezterm.target_triple:find('apple') then
   mods = { 'CMD' }
+  -- Workaround for macOS Tahoe issue where GPU usage goes high. Disable window shadows.
+  -- See: https://github.com/wezterm/wezterm/issues/7271
+  -- See: https://github.com/wezterm/wezterm/issues/7275
+  window_decorations = 'TITLE | RESIZE | MACOS_FORCE_DISABLE_SHADOW'
 elseif wezterm.target_triple:find('linux') then
   mods = { 'SUPER', 'ALT' }
 end
@@ -62,6 +67,7 @@ return {
   hide_tab_bar_if_only_one_tab = true,
   tab_bar_at_bottom = true,
   tab_max_width = 128,
+  window_decorations = window_decorations,
   keys = keys,
   harfbuzz_features = {"calt=0", "clig=0", "liga=0"},
   color_scheme = 'Abernathy',
