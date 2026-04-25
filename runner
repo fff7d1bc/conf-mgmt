@@ -7,6 +7,8 @@
 #     ./runner remote NAME.yml
 #     ./runner remote NAME.yml host
 #     ./runner remote NAME.yml user@host
+#     ./runner local -- --tags tag
+#     ./runner remote NAME.yml host -- --tags tag
 
 
 set -e
@@ -46,6 +48,26 @@ run() {
 }
 
 
+split_args() {
+    runner_args=()
+    ansible_args=()
+
+    while [ "${#}" -gt 0 ]; do
+        case "${1}" in
+            '--')
+                shift
+                ansible_args=( "$@" )
+                return 0
+            ;;
+            *)
+                runner_args+=( "${1}" )
+                shift
+            ;;
+        esac
+    done
+}
+
+
 setup_and_load_venv() {
     if ! [ -d "${venv_dir}" ] || ! cmp "${work_dir}/requirements.txt" "${venv_dir}/requirements.txt" >/dev/null 2>&1; then
         einfo 'Setting up new virtualenv'
@@ -80,7 +102,7 @@ handler_local() {
     done
 
     playbook="${1:-$(hostname).yml}"
-    run ansible-playbook --limit 'localhost' -i 'localhost,' --connection local "${playbook}"
+    run ansible-playbook --limit 'localhost' -i 'localhost,' --connection local "${playbook}" "${ansible_args[@]}"
 }
 
 
@@ -109,7 +131,7 @@ handler_remote() {
         esac
     fi
 
-    run ansible-playbook --limit "${target_host}" -i "${target_host}," --connection ssh -u "${target_user}" "${playbook}"
+    run ansible-playbook --limit "${target_host}" -i "${target_host}," --connection ssh -u "${target_user}" "${playbook}" "${ansible_args[@]}"
 }
 
 
@@ -123,6 +145,8 @@ case "${1:-}" in
     ;;
 esac
 
+split_args "$@"
+
 setup_and_load_venv
-"${handler}" "$@"
+"${handler}" "${runner_args[@]}"
 einfo 'Done'
