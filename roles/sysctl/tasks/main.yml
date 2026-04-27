@@ -1,0 +1,27 @@
+- name: sysctl
+  tags: [sysctl]
+  when: ansible_facts.system == "Linux"
+  block:
+    - name: gather hardware facts
+      when: ansible_facts.memtotal_mb is not defined
+      setup:
+        gather_subset:
+          - "!all"
+          - hardware
+
+    - name: virtual memory subsystem tuning config
+      register: sysctl_vm_config
+      copy:
+        dest: "{{ sysctl_vm_file }}"
+        owner: root
+        group: root
+        mode: 0644
+        content: |
+          # Managed by conf-mgmt.
+          {% for setting in sysctl_vm_settings %}
+          {{ setting.name }} = {{ setting.value }}
+          {% endfor %}
+
+    - name: apply virtual memory subsystem tuning
+      when: sysctl_vm_config.changed
+      command: sysctl -p {{ sysctl_vm_file }}

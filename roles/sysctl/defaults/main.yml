@@ -1,0 +1,16 @@
+sysctl_vm_file: /etc/sysctl.d/99-vm.conf
+
+sysctl_10p_mem_bytes: "{{ (ansible_facts.memtotal_mb | int) * 1024 * 1024 // 10 }}"
+sysctl_20p_mem_bytes: "{{ (ansible_facts.memtotal_mb | int) * 1024 * 1024 // 5 }}"
+sysctl_1gib_bytes: "{{ 1024**3 }}"
+sysctl_5gib_bytes: "{{ 5 * 1024**3 }}"
+
+sysctl_vm_settings:
+  # Flush filesystem data that has been dirty for more than 5s. Default 30s.
+  - { name: "vm.dirty_expire_centisecs", value: "500" }
+  # Check once a second whether dirty data should be flushed. Default 5s.
+  - { name: "vm.dirty_writeback_centisecs", value: "100" }
+  # Hard dirty data limit: cap at 5 GiB, or 20% of memory when lower.
+  - { name: "vm.dirty_bytes", value: "{{ [sysctl_5gib_bytes, sysctl_20p_mem_bytes] | min }}" }
+  # Background writeback trigger: cap at 1 GiB, or 10% of memory when lower.
+  - { name: "vm.dirty_background_bytes", value: "{{ [sysctl_1gib_bytes, sysctl_10p_mem_bytes] | min }}" }
