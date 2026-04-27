@@ -1,8 +1,10 @@
 - name: locals fact from locals.yml
+  tags: [always]
   set_fact:
     locals: "{{ lookup('file', 'locals.yml', errors='ignore') | from_yaml }}"
 
 - name: include roles
+  tags: [always]
   include_role:
     name: "{{ meta_role.key }}"
   loop: "{{ (confmgmt | default({})) | dict2items }}"
