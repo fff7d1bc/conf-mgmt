@@ -214,9 +214,9 @@ _prompt_setup_git() {
         git_head="${git_head[1,12]}…${git_head[-11,-1]}"
     fi
 
-    # Do not use `--no-optional-locks` here, as it prevents git from refreshing caches
-    # that make subsequent prompt updates much faster.
-    if [ "$(git status --porcelain --untracked-files=no --ignore-submodules=dirty 2>/dev/null)" ]; then
+    # Keep prompt status read-only. Letting git refresh the index here is faster on repeated
+    # prompts, but rewrites .git/index and does not mix well with Syncthing-managed repos.
+    if [ "$(git --no-optional-locks status --porcelain --untracked-files=no --ignore-submodules=dirty 2>/dev/null)" ]; then
         git_status_dirty='%F{green}*'
     else
         git_status_dirty=''
