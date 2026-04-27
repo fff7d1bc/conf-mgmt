@@ -4,6 +4,7 @@
 # Usage:
 #     ./runner local
 #     ./runner local NAME.yml
+#     ./runner syntaxcheck NAME.yml
 #     ./runner remote NAME.yml
 #     ./runner remote NAME.yml host
 #     ./runner remote NAME.yml user@host
@@ -106,6 +107,13 @@ handler_local() {
 }
 
 
+handler_syntaxcheck() {
+    [ "${#}" -eq 1 ] || edie "Usage: ./runner syntaxcheck NAME.yml"
+    ansible_args+=( --syntax-check )
+    handler_local "$@"
+}
+
+
 handler_remote() {
     local playbook="$1"
     local target="${2:-}"
@@ -136,7 +144,7 @@ handler_remote() {
 
 
 case "${1:-}" in
-    'local'|'remote')
+    'local'|'remote'|'syntaxcheck')
         handler="handler_${1}"
         shift
     ;;

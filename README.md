@@ -15,6 +15,7 @@ Configuration as a code for operating systems, built around Ansible.
 ```
 ./runner local
 ./runner local NAME.yml
+./runner syntaxcheck NAME.yml
 ./runner remote NAME.yml
 ./runner remote NAME.yml host
 ./runner remote NAME.yml user@host
@@ -23,6 +24,7 @@ Configuration as a code for operating systems, built around Ansible.
 ```
 
 - When using `local` and not passing the name of playbook, hostname.yml will be used.
+- `syntaxcheck` runs the given playbook through the local execution path with `--syntax-check`.
 - For `remote`, if host is not provided, name of playbook without the `.yml` prefix is used as hostname. When user is not provided in target, it defaults to `root`.
 - Everything after `--` is passed to `ansible-playbook`.
 
