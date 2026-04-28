@@ -13,7 +13,12 @@
 
 
 set -e
-set -u
+
+# Bash 3.2 treats empty array expansions as unbound under `set -u`, which breaks otherwise valid
+# calls like `./runner local` when runner_args is empty. Keep nounset where Bash handles that sanely.
+if [ "${BASH_VERSINFO[0]}" -ge 4 ]; then
+    set -u
+fi
 
 
 umask 077
