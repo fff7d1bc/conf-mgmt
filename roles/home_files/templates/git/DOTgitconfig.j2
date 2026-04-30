@@ -11,8 +11,8 @@
 [alias]
 	c = commit --verbose
 	ca = commit --verbose --all
-	s = !git --no-optional-locks status --short "$@"
-	d = !git --no-optional-locks -c diff.autoRefreshIndex=false diff "$@"
+	s = "!f() { cd -- \"${GIT_PREFIX:-.}\" && git --no-optional-locks status --short \"$@\"; }; f"
+	d = "!f() { cd -- \"${GIT_PREFIX:-.}\" && git --no-optional-locks -c diff.autoRefreshIndex=false diff \"$@\"; }; f"
 	r = update-index --refresh
 	l = log --color --graph --pretty=format:'%C(yellow)%h%Creset%C(bold green)%d%Creset %s %Creset'
 	ll = log --pretty=fuller
