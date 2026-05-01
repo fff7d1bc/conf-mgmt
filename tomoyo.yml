@@ -19,7 +19,6 @@
           - docker-cli
           - virt-manager
           - btop
-          - firejail
           - tmux
           - steam
           - steam-devices

@@ -13,7 +13,6 @@
           - syncthing
           - htop
           - jetbrains-mono-fonts-all
-          - firejail
           - tmux
         kargs:
           - amdgpu.abmlevel=0
