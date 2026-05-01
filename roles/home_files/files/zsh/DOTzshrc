@@ -347,40 +347,107 @@ setopt hist_ignore_space
 #stty -ixon
 setopt noflowcontrol
 
-# Ensure that / is added after tab complation to directories.
-# without disabling it, $LBUFFER does not have the slash at the end
-# and it's required for _append_path_to_buffer thing..
-#setopt AUTO_PARAM_SLASH
-#unsetopt AUTO_REMOVE_SLASH
-
 _select_path_with_fzy() {
-    local results
-    if [ "$1" != '.' ]; then
-        if ! [ -d $~1 ]; then
-            echo -e "${yellow}The $1 is not a directory.${NC}"  >&2
-            return
-        fi
-        cd $~1
-    fi
+    local dir="${(Q)1}"
+    local found_path selected_path
+    local old_pwd="${PWD}"
+    local -a find_cmd dir_matches
 
-    # Do not go into 'node_modules', '.git' and 'venv' paths.
-    timeout 3s find -L . \( -path '*/node_modules' -o -path '*/.git' -o -path '*/venv' \) -prune -o \( -type d -printf "%p/\n" -o -type f -print \) 2>/dev/null | cut -c 3- | sort | fzy
+    # Unquote the shell word first, then apply zsh glob expansion. This lets prefixes like
+    # `~/tmp/`, `foo\ bar/`, and `src*/` work without using unsafe unquoted command arguments.
+    dir_matches=( ${~dir}(N-/) )
+    if (( ${#dir_matches} != 1 )); then
+        if (( ${#dir_matches} == 0 )); then
+            print -ru2 -- "${yellow}The ${dir} is not a directory.${NC}"
+        else
+            print -ru2 -- "${yellow}The ${dir} matches more than one directory.${NC}"
+        fi
+        return 1
+    fi
+    dir="${dir_matches[1]}"
+
+    {
+        # The widget normally calls this helper in command substitution, but keep it safe when
+        # called directly too: always restore PWD below.
+        if [[ "${dir}" != "." ]]; then
+            if ! cd -- "${dir}"; then
+                print -ru2 -- "${yellow}Cannot enter ${dir}.${NC}"
+                return
+            fi
+        fi
+
+        if command -v timeout >/dev/null 2>&1; then
+            find_cmd=(timeout 3s find)
+        elif command -v gtimeout >/dev/null 2>&1; then
+            find_cmd=(gtimeout 3s find)
+        else
+            find_cmd=(find)
+        fi
+
+        # Keep this portable: BSD find has no -printf, so print paths as-is and strip leading ./ in
+        # zsh. The pruning keeps the common huge/noisy directories out of the fzy input.
+        selected_path="$(
+            "${find_cmd[@]}" -L . \( -path '*/node_modules' -o -path '*/.git' -o -path '*/venv' \) -prune -o \( -type d -print -o -type f -print \) 2>/dev/null \
+            | while IFS= read -r found_path; do
+                found_path="${found_path#./}"
+                [[ -n "${found_path}" && "${found_path}" != "." ]] && print -r -- "${found_path}"
+            done \
+            | sort \
+            | fzy
+        )" || return
+
+        if [[ -d "${selected_path}" ]]; then
+            selected_path+="/"
+        fi
+        print -r -- "${selected_path}"
+    } always {
+        cd -- "${old_pwd}" >/dev/null 2>&1
+    }
 }
 
 _append_path_to_buffer() {
+    autoload -Uz split-shell-arguments
+
+    local search_in
     local selected_path
+    local append_search_slash
+    local current_word path_part
+    local -a split_reply dir_matches
 
     if ! command -v fzy >/dev/null 2>&1; then
-        echo 'No fzy binary found in $PATH.'
+        zle -M 'No fzy binary found in $PATH.'
         return 1
     fi
+
     echo
     print -nr "${zle_bracketed_paste[2]}" >/dev/tty
     {
-        if [ "${LBUFFER[-1]}" = '/' ]; then
-            search_in="${LBUFFER##*[$'\t' ]}"
-        else
-            search_in='.'
+        search_in='.'
+        append_search_slash=''
+        if [[ -n "${LBUFFER}" ]]; then
+            local reply REPLY
+            # split-shell-arguments understands quotes and escapes in the current command line.
+            # Plain whitespace splitting breaks cases like `vim foo\ bar/`.
+            split-shell-arguments
+            split_reply=( "${reply[@]}" )
+            current_word="${split_reply[REPLY - 1]}"
+            # Support arguments like `--output=dir/` by searching in the value side.
+            path_part="${current_word##*=}"
+
+            if [[ "${LBUFFER[-1]}" == "/" ]]; then
+                if [[ -n "${path_part}" ]]; then
+                    search_in="${path_part}"
+                fi
+            elif [[ -n "${path_part}" ]]; then
+                # If the word touching the cursor is already a directory, behave as if the user had
+                # typed the trailing slash. Do not mutate LBUFFER yet: canceling fzy should leave the
+                # command line unchanged.
+                dir_matches=( ${~${(Q)path_part}}(N-/) )
+                if (( ${#dir_matches} == 1 )); then
+                    append_search_slash=1
+                    search_in="${path_part}"
+                fi
+            fi
         fi
 
         selected_path="$(_select_path_with_fzy "${search_in}")"
@@ -388,6 +455,9 @@ _append_path_to_buffer() {
         print -nr "${zle_bracketed_paste[1]}" >/dev/tty
     }
     if [ "${selected_path}" ]; then
+        if [[ -n "${append_search_slash}" ]]; then
+            LBUFFER+="/"
+        fi
         if [[ "${LBUFFER[-1]}" =~ [[:alnum:]] ]]; then
             # if last character is a word character, insert space.
             # before inserting selected path. Useful when one's lazy 
