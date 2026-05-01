@@ -1,14 +1,13 @@
 #.zshrc
 
 # run ZPROF=1 zsh for profiling.
-if [ "${ZPROF}" ]; then
+if [ "${ZPROF:-}" ]; then
     zmodload zsh/zprof
 fi
 
 # Basic zsh config.
 umask 077
 ZDOTDIR=${ZDOTDIR:-${HOME}}
-ZSHDDIR="${HOME}/.config/zsh.d"
 HISTFILE="${ZDOTDIR}/.zsh_history"
 HISTSIZE='128000'
 SAVEHIST='96000'
@@ -75,6 +74,7 @@ dedupe_PATH() {
 setup_homebrew() {
     local current_user_uid="${EUID}"
     local homebrew_base_dir
+    local homebrew_base_dir_uid
 
     for i in /opt/homebrew /home/linuxbrew/.linuxbrew; do
         if [ -d "$i" ]; then
@@ -190,12 +190,17 @@ _termtitle() {
 _prompt_setup_git() {
     git_prompt=''
 
+    local _dotgit_path
     local git_status_dirty
     local git_status_stash
     local git_head
     local dotgit_uid
 
     if ! has_in_tree _dotgit_path .git; then
+        return 0
+    fi
+
+    if ! command -v git >/dev/null 2>&1; then
         return 0
     fi
 
@@ -281,15 +286,6 @@ bindkey -e
 autoload -U edit-command-line
 zle -N edit-command-line
 bindkey '^x^e' edit-command-line
-
-# Include user-specified configs.
-if [ ! -d "${ZSHDDIR}" ]; then
-    mkdir -p "${ZSHDDIR}" && echo "# Put your user-specified config here." > "${ZSHDDIR}/example.zsh"
-fi
-
-for zshd in $(ls -A ${HOME}/.config/zsh.d/^*.(z)sh$); do
-    . "${zshd}"
-done
 
 # Completion.
 autoload -Uz compinit
@@ -559,7 +555,10 @@ esac
 
 _warn_if_zshrc_has_lines_after_end_marker() {
     local -a zshrc_lines
-    zshrc_lines=("${(@f)$(< ~/.zshrc)}")
+    local zshrc_path="${ZDOTDIR}/.zshrc"
+
+    [[ -r "${zshrc_path}" ]] || return 0
+    zshrc_lines=("${(@f)$(< "${zshrc_path}")}")
 
     if [[ "${zshrc_lines[-1]}" != '### end of .zshrc' ]]; then
         echo "[WARNING] .zshrc: You have some lines after end of file marker in .zshrc, consider moving them to .zshrc.local" >&2
@@ -567,9 +566,9 @@ _warn_if_zshrc_has_lines_after_end_marker() {
 }
 _warn_if_zshrc_has_lines_after_end_marker
 
-if [ -f ~/.zshrc.local ]; then . ~/.zshrc.local; fi
+if [ -f "${ZDOTDIR}/.zshrc.local" ]; then . "${ZDOTDIR}/.zshrc.local"; fi
 
-if [ "${ZPROF}" ]; then
+if [ "${ZPROF:-}" ]; then
     zprof
 fi
 
