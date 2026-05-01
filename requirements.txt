@@ -4,23 +4,23 @@
 #
 #    pip-compile
 #
-ansible==13.5.0
+ansible==13.6.0
     # via -r requirements.in
-ansible-core==2.20.4
+ansible-core==2.20.5
     # via ansible
-build==1.4.2
+build==1.5.0
     # via pip-tools
 cffi==2.0.0
     # via cryptography
-click==8.3.2
+click==8.3.3
     # via pip-tools
-cryptography==46.0.6
+cryptography==47.0.0
     # via ansible-core
 jinja2==3.1.6
     # via ansible-core
 markupsafe==3.0.3
     # via jinja2
-packaging==26.0
+packaging==26.2
     # via
     #   ansible-core
     #   build
@@ -37,7 +37,7 @@ pyyaml==6.0.3
     # via ansible-core
 resolvelib==1.2.1
     # via ansible-core
-wheel==0.46.3
+wheel==0.47.0
     # via pip-tools
 
 # The following packages are considered to be unsafe in a requirements file:
