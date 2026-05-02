@@ -55,6 +55,7 @@
           - zstd
           - vim
           - codex
+          - make
         casks:
           - alt-tab
           - firefox
