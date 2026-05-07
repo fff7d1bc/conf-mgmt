@@ -194,6 +194,7 @@ _prompt_setup_git() {
     local git_status_dirty
     local git_status_stash
     local git_head
+    local git_dir
     local dotgit_uid
 
     if ! has_in_tree _dotgit_path .git; then
@@ -213,7 +214,20 @@ _prompt_setup_git() {
         return 0
     fi
 
-    read -r git_head < "${_dotgit_path}/HEAD"
+    # In submodules and worktrees, .git is often a file containing `gitdir: ...`, not a
+    # directory. In incomplete/broken checkouts it may also exist without a readable HEAD.
+    if [[ -d "${_dotgit_path}" ]]; then
+        git_dir="${_dotgit_path}"
+    elif [[ -f "${_dotgit_path}" ]]; then
+        read -r git_dir < "${_dotgit_path}" || return 0
+        git_dir="${git_dir#gitdir: }"
+        [[ "${git_dir}" = /* ]] || git_dir="${_dotgit_path:h}/${git_dir}"
+    else
+        return 0
+    fi
+
+    [[ -r "${git_dir}/HEAD" ]] || return 0
+    read -r git_head < "${git_dir}/HEAD" || return 0
     git_head="${git_head#ref: refs/heads/}"
     if (( ${#git_head} > 24 )); then
         git_head="${git_head[1,12]}…${git_head[-11,-1]}"
@@ -227,7 +241,7 @@ _prompt_setup_git() {
         git_status_dirty=''
     fi
 
-    if git rev-parse --verify --quiet refs/stash >/dev/null; then
+    if git rev-parse --verify --quiet refs/stash >/dev/null 2>&1; then
         git_status_stash="%F{yellow}▲"
     else
         git_status_stash=''
