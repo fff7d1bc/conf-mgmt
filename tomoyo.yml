@@ -24,9 +24,6 @@
           - steam-devices
         kargs:
           - amdgpu.abmlevel=0
-        system_groups:
-          - docker
-          - libvirt
       flatpak:
         packages:
           - io.github.ilya_zlobintsev.LACT
