@@ -23,21 +23,64 @@
     shell: rpm-ostree kargs --append-if-missing {{ item | quote }}
     with_items: "{{ confmgmt.rpm_ostree.kargs }}"
 
-  # FIXME:
-  #   This code backfires when `getent groups` returns 2 entries.
-  #   It might be better to  `slurp` /etc/group and /usr/lib/group with .splitlines()
-  #   and then have `lineinfile` with `when` the ^{{ item }}: is not prsent in etc_group_lines 
-  - name: getent groups
+  - name: Read mutable group database
     when: confmgmt.rpm_ostree.system_groups is defined
-    getent:
-      database: group
+    slurp:
+      path: /etc/group
+    register: rpm_ostree_etc_group
 
-  - name: Cast selected groups from immutable /usr/lib/group to muttable /etc/group
+  - name: Read immutable group database
     when: confmgmt.rpm_ostree.system_groups is defined
+    slurp:
+      path: /usr/lib/group
+    register: rpm_ostree_usr_group
+
+  - name: Parse group databases
+    when: confmgmt.rpm_ostree.system_groups is defined
+    set_fact:
+      rpm_ostree_etc_group_lines: "{{ (rpm_ostree_etc_group.content | b64decode).splitlines() }}"
+      rpm_ostree_usr_group_lines: "{{ (rpm_ostree_usr_group.content | b64decode).splitlines() }}"
+
+  - name: Read selected groups from NSS
+    when: confmgmt.rpm_ostree.system_groups is defined
+    command:
+      argv:
+        - getent
+        - group
+        - "{{ item }}"
+    changed_when: false
+    failed_when: false
+    register: rpm_ostree_getent_groups
+    loop: "{{ confmgmt.rpm_ostree.system_groups | unique }}"
+
+  - name: Validate selected rpm-ostree system groups
+    when: confmgmt.rpm_ostree.system_groups is defined
+    vars:
+      rpm_ostree_group_re: "^{{ item | regex_escape }}:"
+      rpm_ostree_etc_group_matches: "{{ rpm_ostree_etc_group_lines | select('match', rpm_ostree_group_re) | list }}"
+      rpm_ostree_usr_group_matches: "{{ rpm_ostree_usr_group_lines | select('match', rpm_ostree_group_re) | list }}"
+      rpm_ostree_getent_group_matches: "{{ (rpm_ostree_getent_groups.results | selectattr('item', 'equalto', item) | map(attribute='stdout_lines') | first | default([])) | select('match', rpm_ostree_group_re) | list }}"
+      rpm_ostree_group_source_matches: "{{ (rpm_ostree_usr_group_matches | length > 0) | ternary(rpm_ostree_usr_group_matches, rpm_ostree_getent_group_matches) }}"
+    assert:
+      that:
+        - rpm_ostree_etc_group_matches | length <= 1
+        - rpm_ostree_etc_group_matches | length == 1 or rpm_ostree_group_source_matches | length == 1
+      fail_msg: "Expected group {{ item }} to be present at most once in /etc/group, or absent from /etc/group and present exactly once in /usr/lib/group or getent group {{ item }}."
+    loop: "{{ confmgmt.rpm_ostree.system_groups | unique }}"
+
+  - name: Cast selected groups from immutable /usr/lib/group to mutable /etc/group
+    when:
+      - confmgmt.rpm_ostree.system_groups is defined
+      - rpm_ostree_etc_group_lines | select('match', rpm_ostree_group_re) | list | length == 0
+    vars:
+      rpm_ostree_group_re: "^{{ item | regex_escape }}:"
+      rpm_ostree_usr_group_matches: "{{ rpm_ostree_usr_group_lines | select('match', rpm_ostree_group_re) | list }}"
+      rpm_ostree_getent_group_matches: "{{ (rpm_ostree_getent_groups.results | selectattr('item', 'equalto', item) | map(attribute='stdout_lines') | first | default([])) | select('match', rpm_ostree_group_re) | list }}"
+      rpm_ostree_group_source_matches: "{{ (rpm_ostree_usr_group_matches | length > 0) | ternary(rpm_ostree_usr_group_matches, rpm_ostree_getent_group_matches) }}"
     lineinfile:
-      dest: /etc/group
-      regexp: '^{{ item }}:'
-      # getent_group elements are either alist of strings, or list of lists of strings if exactly same entries are found in /usr/lib/group and /etc/group.
-      line: "{{ item }}:{{ (ansible_facts.getent_group[item][0] is not string) | ternary(ansible_facts.getent_group[item][0], ansible_facts.getent_group[item]) | join(':') }}"
+      path: /etc/group
+      line: "{{ rpm_ostree_group_source_matches | first }}"
+      insertafter: EOF
       state: present
-    with_items: "{{ confmgmt.rpm_ostree.system_groups }}"
+      backup: true
+    loop: "{{ confmgmt.rpm_ostree.system_groups | unique }}"
