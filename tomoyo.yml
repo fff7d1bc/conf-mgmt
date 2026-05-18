@@ -22,6 +22,14 @@
           - tmux
           - steam
           - steam-devices
+          - gcc
+          - gcc-c++
+          - make
+          - glibc-devel
+          - glibc-static
+          - pkgconf-pkg-config
+          - kernel-headers
+          - golang
         kargs:
           - amdgpu.abmlevel=0
       flatpak:
@@ -42,8 +50,6 @@
           - ripgrep
           - fzy
           - codex
-          - make
-          - golang
       sshd: 
       plasmalogin:
       home_files:
