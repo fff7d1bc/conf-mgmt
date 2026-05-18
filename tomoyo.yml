@@ -45,7 +45,7 @@
           - make
           - golang
       sshd: 
-      sddm:
+      plasmalogin:
       home_files:
         files:
           root:
