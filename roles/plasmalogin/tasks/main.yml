@@ -1,0 +1,20 @@
+- name: plasmalogin
+  tags: [plasmalogin]
+  block:
+  - name: /etc/systemd/system/plasmalogin.service.d directory
+    file:
+      state: directory
+      path: /etc/systemd/system/plasmalogin.service.d
+      owner: root
+      group: root
+      mode: 0755
+
+  - name: make plasmalogin.service wait for plymouth-quit-wait.service
+    copy: 
+      dest: /etc/systemd/system/plasmalogin.service.d/override.conf
+      owner: root
+      group: root
+      mode: 0644
+      content: |
+        [Unit]
+        After=plymouth-quit-wait.service
