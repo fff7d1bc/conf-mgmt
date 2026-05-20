@@ -72,7 +72,6 @@
           - rectangle
           - stats
           - syncthing-app
-          - wezterm
       home_files:
         files:
           piotr:

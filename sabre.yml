@@ -96,7 +96,6 @@
           - syncthing-app
           - tailscale-app
           - utm
-          - wezterm
       home_files:
         files:
           piotr:
