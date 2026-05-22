@@ -7,25 +7,11 @@
   hosts: [all]
   vars:
     confmgmt:
-      rpm_ostree:
-        packages:
-          - zsh
-          - syncthing
-          - htop
-          - jetbrains-mono-fonts-all
-          - tmux
-        kargs:
-          - amdgpu.abmlevel=0
-      flatpak:
-        packages:
-          - io.github.ilya_zlobintsev.LACT
-          - it.mijorus.gearlever
       homebrew:
-        user: bazzite
+        user: deck
         formulas:
           - fzy
           - ffmpeg-full
-          - svt-av1
           - borgbackup
           - mkvtoolnix
           - rust
@@ -33,8 +19,10 @@
           - yt-dlp
           - mpv
           - asdf
+          - make
+          - gcc
+          - golang
       sshd:
-      sddm:
       home_files:
         files:
           root:
@@ -42,7 +30,7 @@
             - zsh
             - tmux
             - git
-          bazzite:
+          deck:
             - bash
             - zsh
             - mpv
