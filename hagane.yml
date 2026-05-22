@@ -27,6 +27,7 @@
           - wireguard
           - net-tools
           - tmux
+          - distrobox
       sshd: 
       pam:
       udev:
