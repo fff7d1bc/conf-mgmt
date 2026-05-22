@@ -23,16 +23,13 @@
       homebrew:
         user: piotr
         formulas:
-          - fzy
           - ffmpeg-full
-          - svt-av1
           - borgbackup
           - mkvtoolnix
           - rust
           - rclone
           - yt-dlp
           - mpv
-          - ab-av1
           - asdf
           - golang
           - make
