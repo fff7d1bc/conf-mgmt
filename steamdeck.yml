@@ -23,10 +23,13 @@
             - bash
             - zsh
             - tmux
+            - git
           deck:
             - bash
             - zsh
             - mpv
+            - wezterm
             - tmux
+            - git
   roles:
     - role: meta
