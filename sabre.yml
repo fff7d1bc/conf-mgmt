@@ -38,7 +38,7 @@
           - ncdu
           - nmap
           - nvm
-          - p7zip
+          - 7zip
           - pip-tools
           - pipx
           - poetry
