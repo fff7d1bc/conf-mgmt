@@ -57,6 +57,7 @@
           - codex
           - make
         casks:
+          - dockdoor
           - firefox
           - font-jetbrains-mono
           - gimp

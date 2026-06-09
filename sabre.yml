@@ -65,6 +65,7 @@
           - codex
           - make
         casks:
+          - dockdoor
           - alfred
           - android-platform-tools
           - balenaetcher
