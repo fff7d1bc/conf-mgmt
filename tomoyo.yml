@@ -50,6 +50,7 @@
           - ripgrep
           - fzy
           - codex
+          - rtk
       sshd: 
       plasmalogin:
       home_files:

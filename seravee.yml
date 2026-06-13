@@ -55,6 +55,7 @@
           - zstd
           - vim
           - codex
+          - rtk
           - make
         casks:
           - dockdoor
