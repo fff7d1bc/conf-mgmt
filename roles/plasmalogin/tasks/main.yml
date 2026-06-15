@@ -18,3 +18,5 @@
       content: |
         [Unit]
         After=plymouth-quit-wait.service
+        [Service]
+        ExecStartPre=sleep 1
