@@ -10,7 +10,6 @@
       homebrew:
         user: deck
         formulas:
-          - fzy
           - rclone
           - yt-dlp
           - mpv

@@ -48,7 +48,6 @@
           - yt-dlp
           - mpv
           - ripgrep
-          - fzy
           - codex
           - rtk
       sshd: 

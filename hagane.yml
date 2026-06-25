@@ -21,7 +21,6 @@
           - rtk
       apt:
         packages:
-          - fzy
           - acl
           - aria2
           - avahi-daemon

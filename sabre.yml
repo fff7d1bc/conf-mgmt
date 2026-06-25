@@ -10,7 +10,6 @@
       homebrew:
         user: piotr
         formulas:
-          - fzy
           - lima
           - ab-av1
           - aria2

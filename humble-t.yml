@@ -9,7 +9,6 @@
     confmgmt:
       apt:
         packages:
-          - fzy
           - jq
           - avahi-daemon
           - net-tools
