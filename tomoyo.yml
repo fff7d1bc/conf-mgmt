@@ -49,7 +49,6 @@
           - mpv
           - ripgrep
           - codex
-          - rtk
       sshd: 
       plasmalogin:
       home_files:

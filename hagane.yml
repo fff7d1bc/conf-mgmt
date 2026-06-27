@@ -18,7 +18,6 @@
           - rclone
           - yt-dlp
           - codex
-          - rtk
       apt:
         packages:
           - acl
