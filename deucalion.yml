@@ -7,21 +7,8 @@
   hosts: [all]
   vars:
     confmgmt:
-      rpm_ostree:
-        packages:
-          - zsh
-          - syncthing
-          - htop
-          - jetbrains-mono-fonts-all
-          - tmux
-        kargs:
-          - amdgpu.abmlevel=0
-      flatpak:
-        packages:
-          - io.github.ilya_zlobintsev.LACT
-          - it.mijorus.gearlever
       homebrew:
-        user: piotr
+        user: deck
         formulas:
           - ffmpeg-full
           - borgbackup
@@ -31,11 +18,10 @@
           - yt-dlp
           - mpv
           - asdf
-          - golang
           - make
-      sshd: 
-      sddm:
-      plasmalogin:
+          - gcc
+          - golang
+      sshd:
       home_files:
         files:
           root:
@@ -43,7 +29,7 @@
             - zsh
             - tmux
             - git
-          piotr:
+          deck:
             - bash
             - zsh
             - mpv
