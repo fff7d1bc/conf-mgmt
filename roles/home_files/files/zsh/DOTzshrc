@@ -353,6 +353,56 @@ setopt hist_ignore_dups
 # Prevent record in history entry if preceding them with at least one space
 setopt hist_ignore_space
 
+# Compact history once a day by letting a short-lived zsh do a normal
+# interactive exit save. zsh's duplicate removal is tied to that internal save
+# path, not to a simple "dedupe this file now" command. `fc -W` does not honor
+# hist_save_no_dups, and setting duplicate-removal options from precmd/zshexit
+# did not reliably trigger the same rewrite. The worker uses `zsh -f -i` so it
+# does not load this .zshrc and recursively start another compaction. `-f` also
+# disables RCS, but zsh only saves history on interactive exit when RCS is set,
+# so the worker turns RCS back on after startup has already skipped rc loading.
+# It then runs `fc -R`, enables hist_save_no_dups, and exits so zsh rewrites
+# HISTFILE itself. The compact_state file is both the 24h timestamp and the
+# nonblocking lock. The .old file is just a local last-known-good copy.
+_compact_zsh_history_daily() {
+    local state
+    local state_mtime
+    local lock_fd
+
+    [[ -n "${HISTFILE}" && -s "${HISTFILE}" ]] || return 0
+
+    state="${HISTFILE}.compact_state"
+
+    zmodload zsh/stat || return 0
+    zmodload zsh/datetime || return 0
+    zmodload zsh/system || return 0
+
+    if zstat -A state_mtime +mtime -- "${state}" 2>/dev/null; then
+        (( EPOCHSECONDS - state_mtime >= 86400 )) || return 0
+    fi
+
+    touch -- "${state}" || return 0
+    zsystem flock -t 0 -f lock_fd -- "${state}" 2>/dev/null || return 0
+
+    cp -p -- "${HISTFILE}" "${HISTFILE}.old" || {
+        zsystem flock -u "${lock_fd}"
+        return 0
+    }
+
+    HISTFILE="${HISTFILE}" HISTSIZE="${HISTSIZE}" SAVEHIST="${SAVEHIST}" zsh -f -i -c '
+        setopt rcs
+        HISTFILE="${HISTFILE}"
+        HISTSIZE="${HISTSIZE}"
+        SAVEHIST="${SAVEHIST}"
+        setopt hist_save_by_copy hist_fcntl_lock hist_save_no_dups
+        fc -R
+    ' >/dev/null 2>&1
+
+    zsystem flock -u "${lock_fd}"
+    return 0
+}
+_compact_zsh_history_daily
+
 # Nobody need flow control anymore. Troublesome feature.
 #stty -ixon
 setopt noflowcontrol
