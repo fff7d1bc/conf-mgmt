@@ -27,6 +27,7 @@
           - net-tools
           - tmux
           - distrobox
+          - golang
       sshd: 
       pam:
       udev:
