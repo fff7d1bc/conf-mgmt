@@ -1,0 +1,11 @@
+- name: sudo
+  tags: [sudo]
+  block:
+  - name: disable password feedback
+    copy:
+      dest: /etc/sudoers.d/99-disable-pwfeedback
+      owner: root
+      group: root
+      mode: 0440
+      content: |
+        Defaults !pwfeedback

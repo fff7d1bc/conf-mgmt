@@ -30,6 +30,7 @@
           - golang
       sshd: 
       pam:
+      sudo:
       udev:
       sysctl:
       home_files:
