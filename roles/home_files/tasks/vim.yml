@@ -1,0 +1,7 @@
+- name: .vimrc deployment for {{ user }}
+  copy:
+    src: vim/DOTvimrc
+    dest: '{{ home }}/.vimrc'
+    owner: '{{ uid }}'
+    group: '{{ gid }}'
+    mode: 0600
