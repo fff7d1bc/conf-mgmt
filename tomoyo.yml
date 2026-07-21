@@ -22,6 +22,7 @@
           - tmux
           - steam
           - steam-devices
+          - gamescope
           - gcc
           - gcc-c++
           - make
