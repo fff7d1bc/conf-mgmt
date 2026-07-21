@@ -59,6 +59,7 @@
             - zsh
             - tmux
             - git
+            - vim
           piotr:
             - bash
             - zsh
@@ -66,5 +67,6 @@
             - wezterm
             - tmux
             - git
+            - vim
   roles:
     - role: meta

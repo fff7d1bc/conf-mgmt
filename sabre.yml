@@ -103,6 +103,7 @@
             - mpv
             - wezterm
             - git
+            - vim
             - tmux
   roles:
     - role: meta

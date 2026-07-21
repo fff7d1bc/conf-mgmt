@@ -29,6 +29,7 @@
             - zsh
             - tmux
             - git
+            - vim
           deck:
             - bash
             - zsh
@@ -36,5 +37,6 @@
             - wezterm
             - tmux
             - git
+            - vim
   roles:
     - role: meta

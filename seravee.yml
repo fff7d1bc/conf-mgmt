@@ -80,5 +80,6 @@
             - wezterm
             - tmux
             - git
+            - vim
   roles:
     - role: meta

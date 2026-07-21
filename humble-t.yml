@@ -22,10 +22,12 @@
             - zsh
             - tmux
             - git
+            - vim
           root:
             - bash
             - zsh
             - tmux
             - git
+            - vim
   roles:
     - role: meta

@@ -40,11 +40,13 @@
             - zsh
             - tmux
             - git
+            - vim
           piotr:
             - bash
             - zsh
             - mpv
             - tmux
             - git
+            - vim
   roles:
     - role: meta
