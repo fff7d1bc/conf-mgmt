@@ -60,6 +60,7 @@ end
 
 return {
   check_for_updates = false,
+  notification_handling = 'NeverShow',
   font = wezterm.font("JetBrains Mono"),
   font_size = 15.0,
   initial_cols = 90,
