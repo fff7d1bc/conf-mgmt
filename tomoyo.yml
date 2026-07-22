@@ -26,11 +26,13 @@
           - gcc
           - gcc-c++
           - make
+          - cmake
           - glibc-devel
           - glibc-static
           - pkgconf-pkg-config
           - kernel-headers
           - golang
+          - rust
         kargs:
           - amdgpu.abmlevel=0
       flatpak:
@@ -44,7 +46,6 @@
           - svt-av1
           - borgbackup
           - mkvtoolnix
-          - rust
           - rclone
           - yt-dlp
           - mpv
