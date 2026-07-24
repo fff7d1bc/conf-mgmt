@@ -9,8 +9,8 @@ fi
 umask 077
 ZDOTDIR=${ZDOTDIR:-${HOME}}
 HISTFILE="${ZDOTDIR}/.zsh_history"
-HISTSIZE='128000'
-SAVEHIST='96000'
+HISTSIZE='32768'
+SAVEHIST='24576'
 export EDITOR="vim"
 export TMP="$HOME/tmp"
 export TEMP="$TMP"
