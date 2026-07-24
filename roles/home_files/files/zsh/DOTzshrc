@@ -363,7 +363,11 @@ setopt hist_ignore_space
 # so the worker turns RCS back on after startup has already skipped rc loading.
 # It then runs `fc -R`, enables hist_save_no_dups, and exits so zsh rewrites
 # HISTFILE itself. The compact_state file is both the 24h timestamp and the
-# nonblocking lock. The .old file is just a local last-known-good copy.
+# nonblocking lock. The .old, .old2, and .old3 files keep the three most recent
+# pre-compaction copies, with .old being the newest. The extra generations
+# protect against a pre-5.9.2 zsh bug that could rewrite HISTFILE from a
+# partially read history after SIGINT. Fixed by bacc78ec3 and backported to
+# 5.9.2 as a6760226c.
 _compact_zsh_history_daily() {
     local state
     local state_mtime
@@ -383,6 +387,20 @@ _compact_zsh_history_daily() {
 
     touch -- "${state}" || return 0
     zsystem flock -t 0 -f lock_fd -- "${state}" 2>/dev/null || return 0
+
+    if [[ -e "${HISTFILE}.old2" ]]; then
+        mv -f -- "${HISTFILE}.old2" "${HISTFILE}.old3" || {
+            zsystem flock -u "${lock_fd}"
+            return 0
+        }
+    fi
+
+    if [[ -e "${HISTFILE}.old" ]]; then
+        mv -f -- "${HISTFILE}.old" "${HISTFILE}.old2" || {
+            zsystem flock -u "${lock_fd}"
+            return 0
+        }
+    fi
 
     cp -p -- "${HISTFILE}" "${HISTFILE}.old" || {
         zsystem flock -u "${lock_fd}"
