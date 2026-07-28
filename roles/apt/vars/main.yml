@@ -1,0 +1,8 @@
+apt_repository_definitions:
+  syncthing:
+    key_url: https://syncthing.net/release-key.gpg
+    keyring: /etc/apt/keyrings/syncthing-archive-keyring.gpg
+    types: [deb]
+    uris: [https://apt.syncthing.net/]
+    suites: [syncthing]
+    components: [stable-v2]

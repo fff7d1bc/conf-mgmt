@@ -1,6 +1,54 @@
 - name: apt
   tags: [apt]
   block:
+    - name: apt repositories
+      when: confmgmt.apt.repositories is defined
+      block:
+        - name: validate apt repositories
+          assert:
+            that: apt_repository_name in apt_repository_definitions
+            fail_msg: "Unsupported apt repository: {{ apt_repository_name }}"
+          loop: "{{ confmgmt.apt.repositories }}"
+          loop_control:
+            loop_var: apt_repository_name
+            label: "{{ apt_repository_name }}"
+
+        - name: apt keyring directory
+          file:
+            path: /etc/apt/keyrings
+            state: directory
+            owner: root
+            group: root
+            mode: "0755"
+
+        - name: apt repository keys
+          get_url:
+            url: "{{ apt_repository_definitions[apt_repository_name].key_url }}"
+            dest: "{{ apt_repository_definitions[apt_repository_name].keyring }}"
+            owner: root
+            group: root
+            mode: "0644"
+          loop: "{{ confmgmt.apt.repositories }}"
+          loop_control:
+            loop_var: apt_repository_name
+            label: "{{ apt_repository_name }}"
+
+        - name: apt deb822 repositories
+          deb822_repository:
+            name: "{{ apt_repository_name }}"
+            types: "{{ apt_repository_definitions[apt_repository_name].types }}"
+            uris: "{{ apt_repository_definitions[apt_repository_name].uris }}"
+            suites: "{{ apt_repository_definitions[apt_repository_name].suites }}"
+            components: "{{ apt_repository_definitions[apt_repository_name].components }}"
+            signed_by: "{{ apt_repository_definitions[apt_repository_name].keyring }}"
+            mode: "0644"
+            state: present
+            install_python_debian: True
+          loop: "{{ confmgmt.apt.repositories }}"
+          loop_control:
+            loop_var: apt_repository_name
+            label: "{{ apt_repository_name }}"
+
     - name: apt dist-upgrade
       apt:
         update_cache: True
