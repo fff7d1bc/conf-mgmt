@@ -35,6 +35,7 @@
           - rust
         kargs:
           - amdgpu.abmlevel=0
+          - ttm.pages_limit=26214400
       flatpak:
         packages:
           - io.github.ilya_zlobintsev.LACT
