@@ -13,3 +13,16 @@
     with_items:
     - 99-raid56.rules
     - 99-eh_timeout.rules
+
+  - name: allow every local user to access GPU render and compute devices
+    notify:
+    - reload udev rules
+    copy:
+      dest: /etc/udev/rules.d/70-gpu.rules
+      content: |
+        # Match Fedora's defaults on distributions that restrict unprivileged GPU access.
+        SUBSYSTEM=="drm", KERNEL=="renderD*", GROUP="render", MODE="0666"
+        SUBSYSTEM=="kfd", GROUP="render", MODE="0666"
+      owner: root
+      group: root
+      mode: 0644
