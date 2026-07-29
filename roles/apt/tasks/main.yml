@@ -1,6 +1,32 @@
 - name: apt
   tags: [apt]
   block:
+    - name: disable periodic apt updates
+      when: confmgmt.apt.disable_periodic_updates | default(False)
+      block:
+        - name: disable apt periodic actions
+          copy:
+            dest: /etc/apt/apt.conf.d/99-confmgmt-disable-periodic-updates
+            content: |
+              APT::Periodic::Enable "0";
+              APT::Periodic::Update-Package-Lists "0";
+              APT::Periodic::Unattended-Upgrade "0";
+            owner: root
+            group: root
+            mode: "0644"
+
+        - name: disable apt timers
+          systemd_service:
+            name: "{{ apt_timer }}"
+            state: stopped
+            enabled: False
+            masked: True
+          loop:
+            - apt-daily.timer
+            - apt-daily-upgrade.timer
+          loop_control:
+            loop_var: apt_timer
+
     - name: apt repositories
       when: confmgmt.apt.repositories is defined
       block:
@@ -13,13 +39,17 @@
             loop_var: apt_repository_name
             label: "{{ apt_repository_name }}"
 
-        - name: apt keyring directory
+        - name: apt keyring directories
           file:
-            path: /etc/apt/keyrings
+            path: "{{ apt_repository_definitions[apt_repository_name].keyring | dirname }}"
             state: directory
             owner: root
             group: root
             mode: "0755"
+          loop: "{{ confmgmt.apt.repositories }}"
+          loop_control:
+            loop_var: apt_repository_name
+            label: "{{ apt_repository_name }}"
 
         - name: apt repository keys
           get_url:

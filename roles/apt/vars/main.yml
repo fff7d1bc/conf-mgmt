@@ -6,3 +6,10 @@ apt_repository_definitions:
     uris: [https://apt.syncthing.net/]
     suites: [syncthing]
     components: [stable-v2]
+  tailscale:
+    key_url: https://pkgs.tailscale.com/stable/ubuntu/resolute.noarmor.gpg
+    keyring: /etc/apt/keyrings/tailscale-archive-keyring.gpg
+    types: [deb]
+    uris: [https://pkgs.tailscale.com/stable/ubuntu]
+    suites: [resolute]
+    components: [main]
