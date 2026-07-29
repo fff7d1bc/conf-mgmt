@@ -12,15 +12,15 @@
         formulas:
           - ffmpeg-full
           - svt-av1
-          - borgbackup
-          - mkvtoolnix
-          - rust
-          - rclone
-          - yt-dlp
           - codex
       apt:
+        disable_periodic_updates: True
+        repositories:
+          - syncthing
+          - tailscale
         packages:
           - acl
+          - jq
           - aria2
           - avahi-daemon
           - wireguard
@@ -28,6 +28,20 @@
           - tmux
           - distrobox
           - golang
+          - rust-all
+          - borgbackup
+          - mkvtoolnix
+          - rclone
+          - zsh
+          - syncthing
+          - tailscale
+          - lm-sensors
+          - rsync
+          - htop
+          - btop
+          - make
+          - cmake
+          - gcc
       sshd: 
       pam:
       sudo:
