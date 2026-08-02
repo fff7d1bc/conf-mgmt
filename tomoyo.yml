@@ -8,6 +8,11 @@
   vars:
     confmgmt:
       rpm_ostree:
+        kargs:
+          - amdgpu.abmlevel=0
+          - amdgpu.gttsize=114688
+          - ttm.pages_limit=29360128
+          - ttm.page_pool_size=29360128
         packages:
           - zsh
           - syncthing
@@ -33,9 +38,6 @@
           - kernel-headers
           - golang
           - rust
-        kargs:
-          - amdgpu.abmlevel=0
-          - ttm.pages_limit=26214400
       flatpak:
         packages:
           - io.github.ilya_zlobintsev.LACT
