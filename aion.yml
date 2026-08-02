@@ -1,6 +1,6 @@
 #!/usr/bin/env ansible-playbook
 
-- name: hagane
+- name: aion
   gather_facts: true
   gather_subset:
     - min
@@ -22,8 +22,8 @@
           - acl
           - bubblewrap
           - ncdu
-          - sqlite3
           - ripgrep
+          - sqlite3
           - jq
           - aria2
           - avahi-daemon
