@@ -1,0 +1,5 @@
+- name: apply system control settings
+  command:
+    argv:
+      - sysctl
+      - --system

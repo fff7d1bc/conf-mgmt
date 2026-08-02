@@ -1,4 +1,9 @@
 sysctl_vm_file: /etc/sysctl.d/99-vm.conf
+sysctl_apparmor_file: /etc/sysctl.d/99-apparmor.conf
+
+sysctl_apparmor_settings:
+  # Keep AppArmor enabled, but allow unprivileged applications to create user namespaces.
+  kernel.apparmor_restrict_unprivileged_userns: "0"
 
 sysctl_10p_mem_bytes: "{{ (ansible_facts.memtotal_mb | int) * 1024 * 1024 // 10 }}"
 sysctl_20p_mem_bytes: "{{ (ansible_facts.memtotal_mb | int) * 1024 * 1024 // 5 }}"

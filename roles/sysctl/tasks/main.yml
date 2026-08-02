@@ -10,7 +10,7 @@
           - hardware
 
     - name: virtual memory subsystem tuning config
-      register: sysctl_vm_config
+      notify: apply system control settings
       copy:
         dest: "{{ sysctl_vm_file }}"
         owner: root
@@ -22,6 +22,15 @@
           {{ setting.name }} = {{ setting.value }}
           {% endfor %}
 
-    - name: apply virtual memory subsystem tuning
-      when: sysctl_vm_config.changed
-      command: sysctl -p {{ sysctl_vm_file }}
+    - name: AppArmor system control settings config
+      notify: apply system control settings
+      copy:
+        dest: "{{ sysctl_apparmor_file }}"
+        owner: root
+        group: root
+        mode: 0644
+        content: |
+          # Managed by conf-mgmt.
+          {% for setting in (sysctl_apparmor_settings | combine(confmgmt.sysctl | default({}, true))) | dict2items %}
+          {{ setting.key }} = {{ setting.value }}
+          {% endfor %}
