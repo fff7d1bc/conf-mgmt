@@ -13,33 +13,29 @@
           - ffmpeg-full
           - svt-av1
           - codex
-      apt:
-        disable_periodic_updates: True
-        repositories:
-          - syncthing
-          - tailscale
+      dnf:
         packages:
           - acl
           - bubblewrap
           - ncdu
           - ripgrep
-          - sqlite3
+          - sqlite
           - jq
           - aria2
-          - avahi-daemon
-          - wireguard
+          - avahi
+          - wireguard-tools
           - net-tools
           - tmux
           - distrobox
           - golang
-          - rust-all
+          - rust
           - borgbackup
           - mkvtoolnix
           - rclone
           - zsh
           - syncthing
           - tailscale
-          - lm-sensors
+          - lm_sensors
           - rsync
           - htop
           - btop
