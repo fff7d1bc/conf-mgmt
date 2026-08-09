@@ -42,11 +42,18 @@
           - make
           - cmake
           - gcc
+          - zsh
+          - podman
+          - vim
       sshd: 
       pam:
       sudo:
       udev:
       sysctl:
+      systemd:
+        logind:
+          linger_users:
+            - piotr
       home_files:
         files:
           root:
