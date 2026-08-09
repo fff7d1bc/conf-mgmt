@@ -1,0 +1,17 @@
+- name: dnf
+  tags: [dnf]
+  when: ansible_facts.pkg_mgr == "dnf5"
+  block:
+    - name: dnf upgrade
+      dnf5:
+        name: "*"
+        state: latest
+        update_cache: True
+        auto_install_module_deps: True
+
+    - name: dnf packages
+      when: confmgmt.dnf.packages is defined
+      dnf5:
+        name: "{{ confmgmt.dnf.packages }}"
+        state: present
+        auto_install_module_deps: True
