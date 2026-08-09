@@ -56,6 +56,10 @@
           - codex
       sshd: 
       plasmalogin:
+      systemd:
+        logind:
+          linger_users:
+            - piotr
       home_files:
         files:
           root:
