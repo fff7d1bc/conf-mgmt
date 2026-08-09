@@ -1,0 +1,16 @@
+- name: systemd
+  tags: [systemd]
+  when: ansible_facts.service_mgr == "systemd"
+  block:
+    - name: enable user lingering
+      when: confmgmt.systemd.logind.linger_users is defined
+      command:
+        argv:
+          - loginctl
+          - enable-linger
+          - "{{ systemd_linger_user }}"
+        creates: "/var/lib/systemd/linger/{{ systemd_linger_user }}"
+      loop: "{{ confmgmt.systemd.logind.linger_users }}"
+      loop_control:
+        loop_var: systemd_linger_user
+        label: "{{ systemd_linger_user }}"
