@@ -27,8 +27,6 @@
           - net-tools
           - tmux
           - distrobox
-          - golang
-          - rust
           - borgbackup
           - mkvtoolnix
           - rclone
@@ -41,10 +39,21 @@
           - btop
           - make
           - cmake
-          - gcc
           - zsh
           - podman
           - vim
+          - wget
+          - aria2
+          - gcc
+          - gcc-c++
+          - make
+          - cmake
+          - glibc-devel
+          - glibc-static
+          - pkgconf-pkg-config
+          - kernel-headers
+          - golang
+          - rust
       sshd: 
       pam:
       sudo:
