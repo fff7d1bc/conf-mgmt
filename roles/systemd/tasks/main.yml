@@ -2,6 +2,26 @@
   tags: [systemd]
   when: ansible_facts.service_mgr == "systemd"
   block:
+    - name: manage system services
+      vars:
+        # A null policy is shorthand for the common enabled-and-running case.
+        # Explicit policies leave omitted properties unmanaged.
+        systemd_service_config: >-
+          {{
+            {'state': 'started', 'enabled': true}
+            if systemd_service_item.value is none
+            else systemd_service_item.value
+          }}
+      systemd_service:
+        name: "{{ systemd_service_item.key }}"
+        state: "{{ systemd_service_config.state | default(omit) }}"
+        enabled: "{{ systemd_service_config.enabled | default(omit) }}"
+        masked: "{{ systemd_service_config.masked | default(omit) }}"
+      loop: "{{ confmgmt.systemd.services | default({}, true) | dict2items }}"
+      loop_control:
+        loop_var: systemd_service_item
+        label: "{{ systemd_service_item.key }}"
+
     - name: enable user lingering
       when: confmgmt.systemd.logind.linger_users is defined
       command:
