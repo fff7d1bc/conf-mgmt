@@ -66,5 +66,9 @@
             - tmux
             - git
             - vim
+      systemd:
+        services:
+          tailscaled:
+          syncthing@piotr:
   roles:
     - role: meta
