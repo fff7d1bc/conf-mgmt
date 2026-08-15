@@ -10,12 +10,23 @@
       homebrew:
         user: deck
         formulas:
+          - ffmpeg-full
+          - borgbackup
+          - mkvtoolnix
+          - rust
           - rclone
           - yt-dlp
           - mpv
-          - tmux
           - asdf
+          - make
+          - gcc
+          - golang
       sshd:
+      systemd:
+        logind:
+          linger_users:
+            - deck
+          kill_user_processes: False
       home_files:
         files:
           root:
@@ -32,5 +43,10 @@
             - tmux
             - git
             - vim
+      steamos:
+        preserve:
+          - /etc/ssh/sshd_config.d/99-auth.conf
+          - /etc/systemd/logind.conf.d/xyz-preserve-user-processes.conf
+        update: True
   roles:
     - role: meta
