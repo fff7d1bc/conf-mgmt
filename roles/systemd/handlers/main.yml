@@ -1,0 +1,5 @@
+- name: reload systemd-logind
+  when: skip_handlers is not defined
+  systemd_service:
+    name: systemd-logind
+    state: reloaded

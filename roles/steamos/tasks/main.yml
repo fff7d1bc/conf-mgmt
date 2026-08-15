@@ -1,0 +1,45 @@
+- name: steamos
+  tags: [steamos]
+  block:
+    # Ansible identifies SteamOS as Arch Linux; the holo release distinguishes the platform.
+    - name: verify SteamOS platform
+      assert:
+        that:
+          - ansible_facts.distribution == "Archlinux"
+          - ansible_facts.distribution_release == "holo"
+        quiet: True
+        fail_msg: "The steamos role requires SteamOS"
+
+    - name: validate atomic update keep paths
+      assert:
+        that:
+          - steamos_keep_path is string
+          - steamos_keep_path is match('^/etc/[^\n]+$')
+        quiet: True
+        fail_msg: "Invalid SteamOS atomic update keep path: {{ steamos_keep_path | string }}"
+      loop: "{{ confmgmt.steamos.preserve | default([]) }}"
+      loop_control:
+        loop_var: steamos_keep_path
+        label: "{{ steamos_keep_path | string }}"
+
+    - name: atomic update keep list
+      when: confmgmt.steamos.preserve | default([]) | length > 0
+      copy:
+        dest: /etc/atomic-update.conf.d/99-confmgmt.conf
+        owner: root
+        group: root
+        mode: "0644"
+        content: |
+          # Additional files managed by Ansible that must survive atomic updates.
+          {{ confmgmt.steamos.preserve | join('\n') }}
+
+    - name: remove unused atomic update keep list
+      when: confmgmt.steamos.preserve | default([]) | length == 0
+      file:
+        path: /etc/atomic-update.conf.d/99-confmgmt.conf
+        state: absent
+
+    - name: apply SteamOS atomic update
+      # Bracket notation avoids colliding with the dictionary update() method.
+      when: confmgmt.steamos['update'] | default(False)
+      confmgmt_steamos_update:

@@ -22,6 +22,47 @@
         loop_var: systemd_service_item
         label: "{{ systemd_service_item.key }}"
 
+    - name: logind configuration directory
+      when:
+        - >-
+          confmgmt.systemd.logind.kill_user_processes is defined or
+          confmgmt.systemd.logind.kill_exclude_users is defined
+      file:
+        path: /etc/systemd/logind.conf.d
+        state: directory
+        owner: root
+        group: root
+        mode: "0755"
+
+    - name: logind user process policy
+      when:
+        - >-
+          confmgmt.systemd.logind.kill_user_processes is defined or
+          confmgmt.systemd.logind.kill_exclude_users is defined
+      copy:
+        dest: /etc/systemd/logind.conf.d/xyz-preserve-user-processes.conf
+        owner: root
+        group: root
+        mode: "0644"
+        content: |
+          [Login]
+          {% if confmgmt.systemd.logind.kill_user_processes is defined %}
+          KillUserProcesses={{ confmgmt.systemd.logind.kill_user_processes | ternary('yes', 'no') }}
+          {% endif %}
+          {% if confmgmt.systemd.logind.kill_exclude_users is defined %}
+          KillExcludeUsers={{ confmgmt.systemd.logind.kill_exclude_users | join(' ') }}
+          {% endif %}
+      notify: reload systemd-logind
+
+    - name: remove unused logind user process policy
+      when:
+        - confmgmt.systemd.logind.kill_user_processes is not defined
+        - confmgmt.systemd.logind.kill_exclude_users is not defined
+      file:
+        path: /etc/systemd/logind.conf.d/xyz-preserve-user-processes.conf
+        state: absent
+      notify: reload systemd-logind
+
     - name: enable user lingering
       when: confmgmt.systemd.logind.linger_users is defined
       command:
