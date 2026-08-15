@@ -37,10 +37,17 @@ options:
     default: false
   cleanup:
     description:
-      - Run C(brew cleanup --prune=all) after package management.
-      - Preserve Homebrew's update-maintained command indexes to avoid perpetual cleanup churn.
-    type: bool
-    default: false
+      - Controls when to run C(brew cleanup --prune=all) after package management.
+      - C(never) leaves cleanup to Homebrew's default behavior.
+      - C(on_package_change) runs cleanup only after this invocation installs or upgrades packages.
+      - C(always) checks for cleanup candidates on every invocation.
+      - Homebrew's update-maintained command indexes are preserved to avoid perpetual cleanup churn.
+    type: str
+    choices:
+      - never
+      - on_package_change
+      - always
+    default: never
   sudo_password:
     description: Password exposed to Homebrew's internal sudo calls through SUDO_ASKPASS.
     type: str
@@ -54,7 +61,10 @@ options:
       - /home/linuxbrew/.linuxbrew/bin
 attributes:
   check_mode:
-    support: full
+    details: >-
+      Package mutations are predicted using current metadata, but C(brew update) is skipped and
+      cleanup cannot predict artifacts that a planned package mutation would create.
+    support: partial
   diff_mode:
     support: none
 author:
@@ -72,7 +82,7 @@ EXAMPLES = r"""
     update_homebrew: true
     upgrade_all: true
     greedy: true
-    cleanup: true
+    cleanup: on_package_change
 
 - name: Retry cask operations with a sudo password
   confmgmt_homebrew:
@@ -101,13 +111,33 @@ needs_sudo:
   returned: always
   type: bool
 cleanup_candidates:
-  description: Whether Homebrew found non-ephemeral files to remove during cleanup.
+  description:
+    - Whether Homebrew found non-ephemeral files to remove during cleanup.
+    - In check mode this describes the current pre-mutation filesystem.
+  returned: always
+  type: bool
+cleanup_checked:
+  description:
+    - Whether Homebrew was queried for cleanup candidates.
+    - False for C(never), and for C(on_package_change) when no package mutation was made or predicted.
   returned: always
   type: bool
 cleanup_performed:
   description: Whether cleanup removed files; always false in check mode.
   returned: always
   type: bool
+command_timings:
+  description: Elapsed wall-clock time for each Homebrew subprocess, with package names omitted.
+  returned: always
+  type: list
+  elements: dict
+  contains:
+    command:
+      description: Sanitized command name and options.
+      type: str
+    seconds:
+      description: Elapsed wall-clock seconds.
+      type: float
 failed_command:
   description: Argument list for a failed Homebrew command.
   returned: failure
@@ -120,6 +150,7 @@ import os
 import re
 import shlex
 import tempfile
+import time
 from contextlib import contextmanager
 
 from ansible.module_utils.basic import AnsibleModule
@@ -277,6 +308,12 @@ def cleanup_dry_run_has_changes(stdout, stderr=""):
     return False
 
 
+def summarize_command(command):
+    parts = [os.path.basename(command[0]), command[1]]
+    parts.extend(argument for argument in command[2:] if argument.startswith("-"))
+    return " ".join(parts)
+
+
 def is_sudo_password_failure(error, password_was_supplied):
     if password_was_supplied or not error.sudo_capable:
         return False
@@ -316,7 +353,7 @@ class HomebrewManager:
         update_homebrew=False,
         upgrade_all=False,
         greedy=False,
-        cleanup=False,
+        cleanup="never",
         sudo_password=None,
     ):
         self.module = module
@@ -329,9 +366,12 @@ class HomebrewManager:
         self.cleanup = cleanup
         self.sudo_password = sudo_password
         self.changed = False
+        self.package_changed = False
         self.homebrew_updated = False
         self.cleanup_candidates = False
+        self.cleanup_checked = False
         self.cleanup_performed = False
+        self.command_timings = []
         self.install_candidates = {"formulas": [], "casks": []}
         self.upgrade_candidates = {"formulas": [], "casks": []}
         self.manage_formula_namespace = bool(self.formulas)
@@ -342,19 +382,28 @@ class HomebrewManager:
             "LANGUAGE": "C",
             "LC_ALL": "C",
         }
-        if self.cleanup:
+        if self.cleanup != "never":
             # Avoid redundant implicit cleanup after install/upgrade; the explicit final cleanup is
             # more aggressive and reports its own changed state.
             self.environment["HOMEBREW_NO_INSTALL_CLEANUP"] = "1"
 
     def _run_command(self, command, sudo_capable=False):
         environment = self.environment.copy()
-        if sudo_capable and self.sudo_password is not None:
-            with sudo_askpass(self.sudo_password) as askpass_path:
-                environment["SUDO_ASKPASS"] = askpass_path
+        started_at = time.monotonic()
+        try:
+            if sudo_capable and self.sudo_password is not None:
+                with sudo_askpass(self.sudo_password) as askpass_path:
+                    environment["SUDO_ASKPASS"] = askpass_path
+                    rc, stdout, stderr = self.module.run_command(command, environ_update=environment)
+            else:
                 rc, stdout, stderr = self.module.run_command(command, environ_update=environment)
-        else:
-            rc, stdout, stderr = self.module.run_command(command, environ_update=environment)
+        finally:
+            self.command_timings.append(
+                {
+                    "command": summarize_command(command),
+                    "seconds": round(time.monotonic() - started_at, 3),
+                }
+            )
 
         if rc != 0:
             raise HomebrewError(
@@ -431,17 +480,20 @@ class HomebrewManager:
     def _install(self):
         if self.module.check_mode:
             if self.install_candidates["formulas"] or self.install_candidates["casks"]:
+                self.package_changed = True
                 self.changed = True
             return
 
         if self.install_candidates["formulas"]:
             command = [self.brew_path, "install", "--formula", "--no-ask"]
             self._run_command(command + self.install_candidates["formulas"])
+            self.package_changed = True
             self.changed = True
 
         if self.install_candidates["casks"]:
             command = [self.brew_path, "install", "--cask", "--no-ask"]
             self._run_command(command + self.install_candidates["casks"], sudo_capable=True)
+            self.package_changed = True
             self.changed = True
 
     def _outdated_command(self):
@@ -482,17 +534,22 @@ class HomebrewManager:
         if not (outdated_formulas or outdated_casks):
             return
         if self.module.check_mode:
+            self.package_changed = True
             self.changed = True
             return
 
         self._run_command(self._upgrade_command(), sudo_capable=self.manage_cask_namespace)
+        self.package_changed = True
         self.changed = True
 
     def _cleanup(self):
-        if not self.cleanup:
+        if self.cleanup == "never":
+            return
+        if self.cleanup == "on_package_change" and not self.package_changed:
             return
 
         command = [self.brew_path, "cleanup", "--prune=all"]
+        self.cleanup_checked = True
         stdout, stderr = self._run_command(command + ["--dry-run"])
         self.cleanup_candidates = cleanup_dry_run_has_changes(stdout, stderr)
         if not self.cleanup_candidates:
@@ -522,7 +579,11 @@ class HomebrewManager:
             self.homebrew_updated,
             install_count,
             upgrade_count,
-        ) + (", cleanup=%s" % self.cleanup_performed if self.cleanup else "")
+        ) + (
+            ", cleanup=%s" % (self.cleanup_performed if self.cleanup_checked else "skipped")
+            if self.cleanup != "never"
+            else ""
+        )
 
     def result(self):
         return {
@@ -530,7 +591,9 @@ class HomebrewManager:
             "msg": self._message(),
             "homebrew_updated": self.homebrew_updated,
             "cleanup_candidates": self.cleanup_candidates,
+            "cleanup_checked": self.cleanup_checked,
             "cleanup_performed": self.cleanup_performed,
+            "command_timings": self.command_timings,
             "install_candidates": self.install_candidates,
             "upgrade_candidates": self.upgrade_candidates,
             "needs_sudo": False,
@@ -553,7 +616,11 @@ def main():
             "update_homebrew": {"type": "bool", "default": False},
             "upgrade_all": {"type": "bool", "default": False},
             "greedy": {"type": "bool", "default": False},
-            "cleanup": {"type": "bool", "default": False},
+            "cleanup": {
+                "type": "str",
+                "choices": ["never", "on_package_change", "always"],
+                "default": "never",
+            },
             "sudo_password": {"type": "str", "no_log": True},
             "path": {
                 "type": "list",
@@ -592,7 +659,9 @@ def main():
             "msg": error.message,
             "homebrew_updated": manager.homebrew_updated if manager else False,
             "cleanup_candidates": manager.cleanup_candidates if manager else False,
+            "cleanup_checked": manager.cleanup_checked if manager else False,
             "cleanup_performed": manager.cleanup_performed if manager else False,
+            "command_timings": manager.command_timings if manager else [],
             "install_candidates": manager.install_candidates if manager else {"formulas": [], "casks": []},
             "upgrade_candidates": manager.upgrade_candidates if manager else {"formulas": [], "casks": []},
             "needs_sudo": is_sudo_password_failure(

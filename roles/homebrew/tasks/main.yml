@@ -10,7 +10,7 @@
         update_homebrew: True
         upgrade_all: True
         greedy: True
-        cleanup: True
+        cleanup: on_package_change
       register: homebrew_result
   rescue:
     - name: report homebrew failure unrelated to sudo authentication
@@ -34,5 +34,5 @@
         update_homebrew: False
         upgrade_all: True
         greedy: True
-        cleanup: True
+        cleanup: on_package_change
         sudo_password: "{{ homebrew_sudo_password.user_input }}"

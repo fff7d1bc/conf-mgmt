@@ -74,6 +74,14 @@ def json_response(formulae=None, casks=None):
 
 
 class PackageMetadataTests(unittest.TestCase):
+    def test_command_summary_omits_package_names(self):
+        self.assertEqual(
+            HOMEBREW.summarize_command(
+                [BREW, "info", "--json=v2", "--cask", "firefox", "signal"]
+            ),
+            "brew info --json=v2 --cask",
+        )
+
     def test_normalize_names_lowercases_and_deduplicates(self):
         self.assertEqual(
             HOMEBREW.normalize_package_names(["JQ", "user/tap/Thing", "jq"], "formula"),
@@ -222,8 +230,20 @@ class HomebrewManagerTests(unittest.TestCase):
         self.assertFalse(result["changed"])
         self.assertEqual(result["install_candidates"], {"formulas": [], "casks": []})
         self.assertFalse(result["cleanup_candidates"])
+        self.assertFalse(result["cleanup_checked"])
         self.assertFalse(result["cleanup_performed"])
         self.assertEqual(len(module.calls), 4)
+        self.assertNotIn("HOMEBREW_NO_INSTALL_CLEANUP", module.calls[0][1])
+        self.assertEqual(
+            [timing["command"] for timing in result["command_timings"]],
+            [
+                "brew update",
+                "brew info --json=v2",
+                "brew info --json=v2 --cask",
+                "brew outdated --json=v2 --greedy",
+            ],
+        )
+        self.assertTrue(all(timing["seconds"] >= 0 for timing in result["command_timings"]))
 
     def test_missing_packages_and_upgrades_are_batched(self):
         password = "sudo password"
@@ -387,6 +407,131 @@ class HomebrewManagerTests(unittest.TestCase):
         self.assertTrue(manager.changed)
         self.assertTrue(HOMEBREW.is_sudo_password_failure(raised.exception, password_was_supplied=False))
 
+    def test_cleanup_on_package_change_skips_noop(self):
+        module = FakeModule(
+            [
+                (
+                    [BREW, "info", "--json=v2", "jq"],
+                    json_response(formulae=[formula("jq")]),
+                ),
+                ([BREW, "outdated", "--json=v2", "--formula"], json_response()),
+            ]
+        )
+        result = self.manager(
+            module,
+            formulas=["jq"],
+            upgrade_all=True,
+            cleanup="on_package_change",
+        ).run()
+
+        module.assert_complete()
+        self.assertFalse(result["changed"])
+        self.assertFalse(result["cleanup_checked"])
+        self.assertFalse(result["cleanup_performed"])
+        self.assertEqual(module.calls[0][1]["HOMEBREW_NO_INSTALL_CLEANUP"], "1")
+
+    def test_cleanup_on_package_change_ignores_metadata_update(self):
+        module = FakeModule(
+            [
+                ([BREW, "update"], (0, "Updated Homebrew.\n", "")),
+                (
+                    [BREW, "info", "--json=v2", "jq"],
+                    json_response(formulae=[formula("jq")]),
+                ),
+            ]
+        )
+        result = self.manager(
+            module,
+            formulas=["jq"],
+            update_homebrew=True,
+            cleanup="on_package_change",
+        ).run()
+
+        module.assert_complete()
+        self.assertTrue(result["changed"])
+        self.assertTrue(result["homebrew_updated"])
+        self.assertFalse(result["cleanup_checked"])
+        self.assertIn("cleanup=skipped", result["msg"])
+
+    def test_cleanup_on_package_change_runs_after_install(self):
+        module = FakeModule(
+            [
+                (
+                    [BREW, "info", "--json=v2", "jq"],
+                    json_response(formulae=[formula("jq", installed=False)]),
+                ),
+                ([BREW, "install", "--formula", "--no-ask", "jq"], (0, "installed\n", "")),
+                (
+                    [BREW, "cleanup", "--prune=all", "--dry-run"],
+                    (0, "Would remove: /cache/archive (1GB)\n", ""),
+                ),
+                ([BREW, "cleanup", "--prune=all"], (0, "Removing: /cache/archive... (1GB)\n", "")),
+            ]
+        )
+        result = self.manager(
+            module,
+            formulas=["jq"],
+            cleanup="on_package_change",
+        ).run()
+
+        module.assert_complete()
+        self.assertTrue(result["changed"])
+        self.assertTrue(result["cleanup_checked"])
+        self.assertTrue(result["cleanup_performed"])
+
+    def test_cleanup_on_package_change_runs_after_upgrade(self):
+        module = FakeModule(
+            [
+                (
+                    [BREW, "info", "--json=v2", "jq"],
+                    json_response(formulae=[formula("jq")]),
+                ),
+                (
+                    [BREW, "outdated", "--json=v2", "--formula"],
+                    json_response(formulae=[{"name": "jq", "pinned": False}]),
+                ),
+                ([BREW, "upgrade", "--no-ask", "--formula"], (0, "upgraded\n", "")),
+                ([BREW, "cleanup", "--prune=all", "--dry-run"], (0, "", "")),
+            ]
+        )
+        result = self.manager(
+            module,
+            formulas=["jq"],
+            upgrade_all=True,
+            cleanup="on_package_change",
+        ).run()
+
+        module.assert_complete()
+        self.assertTrue(result["changed"])
+        self.assertTrue(result["cleanup_checked"])
+        self.assertFalse(result["cleanup_performed"])
+
+    def test_cleanup_on_package_change_check_mode_uses_current_dry_run(self):
+        module = FakeModule(
+            [
+                (
+                    [BREW, "info", "--json=v2", "jq"],
+                    json_response(formulae=[formula("jq", installed=False)]),
+                ),
+                (
+                    [BREW, "cleanup", "--prune=all", "--dry-run"],
+                    (0, "Would remove: /cache/archive (1GB)\n", ""),
+                ),
+            ],
+            check_mode=True,
+        )
+        result = self.manager(
+            module,
+            formulas=["jq"],
+            cleanup="on_package_change",
+        ).run()
+
+        module.assert_complete()
+        self.assertTrue(result["changed"])
+        self.assertTrue(result["cleanup_checked"])
+        self.assertTrue(result["cleanup_candidates"])
+        self.assertFalse(result["cleanup_performed"])
+
     def test_cleanup_prunes_all_and_reports_change(self):
         module = FakeModule(
             [
@@ -397,11 +542,12 @@ class HomebrewManagerTests(unittest.TestCase):
                 ([BREW, "cleanup", "--prune=all"], (0, "Removing: /cache/archive... (1GB)\n", "")),
             ]
         )
-        result = self.manager(module, cleanup=True).run()
+        result = self.manager(module, cleanup="always").run()
 
         module.assert_complete()
         self.assertTrue(result["changed"])
         self.assertTrue(result["cleanup_candidates"])
+        self.assertTrue(result["cleanup_checked"])
         self.assertTrue(result["cleanup_performed"])
         self.assertEqual(module.calls[0][1]["HOMEBREW_NO_INSTALL_CLEANUP"], "1")
 
@@ -411,11 +557,12 @@ class HomebrewManagerTests(unittest.TestCase):
                 ([BREW, "cleanup", "--prune=all", "--dry-run"], (0, "", "")),
             ]
         )
-        result = self.manager(module, cleanup=True).run()
+        result = self.manager(module, cleanup="always").run()
 
         module.assert_complete()
         self.assertFalse(result["changed"])
         self.assertFalse(result["cleanup_candidates"])
+        self.assertTrue(result["cleanup_checked"])
         self.assertFalse(result["cleanup_performed"])
 
     def test_cleanup_informational_output_is_unchanged(self):
@@ -427,11 +574,12 @@ class HomebrewManagerTests(unittest.TestCase):
                 ),
             ]
         )
-        result = self.manager(module, cleanup=True).run()
+        result = self.manager(module, cleanup="always").run()
 
         module.assert_complete()
         self.assertFalse(result["changed"])
         self.assertFalse(result["cleanup_candidates"])
+        self.assertTrue(result["cleanup_checked"])
         self.assertFalse(result["cleanup_performed"])
 
     def test_cleanup_change_on_stderr_is_detected(self):
@@ -444,11 +592,12 @@ class HomebrewManagerTests(unittest.TestCase):
                 ([BREW, "cleanup", "--prune=all"], (0, "Removing: /cache/archive... (1GB)\n", "")),
             ]
         )
-        result = self.manager(module, cleanup=True).run()
+        result = self.manager(module, cleanup="always").run()
 
         module.assert_complete()
         self.assertTrue(result["changed"])
         self.assertTrue(result["cleanup_candidates"])
+        self.assertTrue(result["cleanup_checked"])
         self.assertTrue(result["cleanup_performed"])
 
     def test_cleanup_ignores_command_indexes_recreated_by_update(self):
@@ -466,11 +615,12 @@ class HomebrewManagerTests(unittest.TestCase):
                 ),
             ]
         )
-        result = self.manager(module, cleanup=True).run()
+        result = self.manager(module, cleanup="always").run()
 
         module.assert_complete()
         self.assertFalse(result["changed"])
         self.assertFalse(result["cleanup_candidates"])
+        self.assertTrue(result["cleanup_checked"])
         self.assertFalse(result["cleanup_performed"])
 
     def test_cleanup_check_mode_uses_dry_run(self):
@@ -483,11 +633,12 @@ class HomebrewManagerTests(unittest.TestCase):
             ],
             check_mode=True,
         )
-        result = self.manager(module, cleanup=True).run()
+        result = self.manager(module, cleanup="always").run()
 
         module.assert_complete()
         self.assertTrue(result["changed"])
         self.assertTrue(result["cleanup_candidates"])
+        self.assertTrue(result["cleanup_checked"])
         self.assertFalse(result["cleanup_performed"])
         self.assertIn("cleanup=True", result["msg"])
 
