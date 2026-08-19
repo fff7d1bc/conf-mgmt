@@ -54,6 +54,8 @@
           - kernel-headers
           - golang
           - rust
+          - nodejs24
+          - nodejs24-npm
       sshd: 
       pam:
       sudo:
