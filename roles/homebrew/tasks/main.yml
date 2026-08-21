@@ -12,11 +12,11 @@
         greedy: True
         cleanup: on_package_change
       register: homebrew_result
-  rescue:
-    - name: report homebrew failure unrelated to sudo authentication
-      when: not (homebrew_result.needs_sudo | default(False) | bool)
-      fail:
-        msg: "{{ homebrew_result.msg | default('Homebrew management failed') }}"
+      # A missing sudo password is an expected first-pass result for some casks. Keep unrelated
+      # module failures fatal while allowing this one structured result to reach the retry tasks.
+      failed_when:
+        - homebrew_result is failed
+        - not (homebrew_result.needs_sudo | default(False) | bool)
 
     - name: sudo password for homebrew casks
       when: homebrew_result.needs_sudo | default(False) | bool

@@ -190,6 +190,79 @@ class SudoHandlingTests(unittest.TestCase):
             self.assertEqual(result.stdout, password + "\n")
         self.assertFalse(os.path.exists(path))
 
+    def test_sudo_failure_result_is_compact_and_structured(self):
+        manager = HOMEBREW.HomebrewManager(
+            module=FakeModule([]),
+            brew_path=BREW,
+            formulas=[],
+            casks=["tailscale-app"],
+        )
+        manager.changed = True
+        error = HOMEBREW.HomebrewError(
+            "full Homebrew transcript",
+            command=[BREW, "upgrade", "--quiet", "--no-ask", "--greedy"],
+            rc=1,
+            stdout="many successful upgrades\n",
+            stderr="sudo: a password is required\n",
+            sudo_capable=True,
+        )
+
+        result = HOMEBREW.failure_result(manager, error)
+
+        self.assertTrue(result["changed"])
+        self.assertTrue(result["needs_sudo"])
+        self.assertEqual(result["rc"], 1)
+        self.assertEqual(
+            result["msg"],
+            "Homebrew requires a sudo password to continue brew upgrade --quiet --no-ask --greedy",
+        )
+        self.assertNotIn("stdout", result)
+        self.assertNotIn("stderr", result)
+        self.assertNotIn("transcript", result["msg"])
+
+    def test_unrelated_failure_result_preserves_diagnostics(self):
+        manager = HOMEBREW.HomebrewManager(
+            module=FakeModule([]),
+            brew_path=BREW,
+            formulas=["jq"],
+            casks=[],
+        )
+        error = HOMEBREW.HomebrewError(
+            "checksum mismatch",
+            command=[BREW, "install", "--quiet", "--formula", "--no-ask", "jq"],
+            rc=1,
+            stdout="download output\n",
+            stderr="checksum mismatch\n",
+        )
+
+        result = HOMEBREW.failure_result(manager, error)
+
+        self.assertFalse(result["needs_sudo"])
+        self.assertEqual(result["msg"], "checksum mismatch")
+        self.assertEqual(result["stdout"], "download output\n")
+        self.assertEqual(result["stderr"], "checksum mismatch\n")
+
+    def test_failure_after_password_retry_preserves_diagnostics(self):
+        manager = HOMEBREW.HomebrewManager(
+            module=FakeModule([]),
+            brew_path=BREW,
+            formulas=[],
+            casks=["tailscale-app"],
+            sudo_password="incorrect password",
+        )
+        error = HOMEBREW.HomebrewError(
+            "sudo: authentication failed",
+            command=[BREW, "upgrade", "--quiet", "--no-ask", "--greedy"],
+            rc=1,
+            stderr="sudo: authentication failed\n",
+            sudo_capable=True,
+        )
+
+        result = HOMEBREW.failure_result(manager, error)
+
+        self.assertFalse(result["needs_sudo"])
+        self.assertEqual(result["stderr"], "sudo: authentication failed\n")
+
 
 class HomebrewManagerTests(unittest.TestCase):
     def manager(self, module, **kwargs):
@@ -244,6 +317,10 @@ class HomebrewManagerTests(unittest.TestCase):
             ],
         )
         self.assertTrue(all(timing["seconds"] >= 0 for timing in result["command_timings"]))
+        for unused_command, environment in module.calls:
+            self.assertEqual(environment["HOMEBREW_NO_COLOR"], "1")
+            self.assertEqual(environment["HOMEBREW_NO_EMOJI"], "1")
+            self.assertEqual(environment["HOMEBREW_NO_ENV_HINTS"], "1")
 
     def test_missing_packages_and_upgrades_are_batched(self):
         password = "sudo password"
@@ -267,8 +344,11 @@ class HomebrewManagerTests(unittest.TestCase):
                     [BREW, "info", "--json=v2", "--cask", "firefox", "signal"],
                     json_response(casks=[cask("firefox"), cask("signal", installed=False)]),
                 ),
-                ([BREW, "install", "--formula", "--no-ask", "ripgrep"], (0, "installed\n", "")),
-                ([BREW, "install", "--cask", "--no-ask", "signal"], sudo_response),
+                (
+                    [BREW, "install", "--quiet", "--formula", "--no-ask", "ripgrep"],
+                    (0, "installed\n", ""),
+                ),
+                ([BREW, "install", "--quiet", "--cask", "--no-ask", "signal"], sudo_response),
                 (
                     [BREW, "outdated", "--json=v2", "--greedy"],
                     json_response(
@@ -276,7 +356,7 @@ class HomebrewManagerTests(unittest.TestCase):
                         casks=[{"name": "firefox", "pinned": False}],
                     ),
                 ),
-                ([BREW, "upgrade", "--no-ask", "--greedy"], sudo_response),
+                ([BREW, "upgrade", "--quiet", "--no-ask", "--greedy"], sudo_response),
             ]
         )
         result = self.manager(
@@ -345,7 +425,7 @@ class HomebrewManagerTests(unittest.TestCase):
                     [BREW, "outdated", "--json=v2", "--formula"],
                     json_response(formulae=[{"name": "jq", "pinned": False}]),
                 ),
-                ([BREW, "upgrade", "--no-ask", "--formula"], (0, "upgraded\n", "")),
+                ([BREW, "upgrade", "--quiet", "--no-ask", "--formula"], (0, "upgraded\n", "")),
             ]
         )
         result = self.manager(
@@ -389,7 +469,7 @@ class HomebrewManagerTests(unittest.TestCase):
                     json_response(casks=[cask("firefox", installed=False)]),
                 ),
                 (
-                    [BREW, "install", "--cask", "--no-ask", "firefox"],
+                    [BREW, "install", "--quiet", "--cask", "--no-ask", "firefox"],
                     (1, "", "sudo: a terminal is required to read the password"),
                 ),
             ]
@@ -460,7 +540,10 @@ class HomebrewManagerTests(unittest.TestCase):
                     [BREW, "info", "--json=v2", "jq"],
                     json_response(formulae=[formula("jq", installed=False)]),
                 ),
-                ([BREW, "install", "--formula", "--no-ask", "jq"], (0, "installed\n", "")),
+                (
+                    [BREW, "install", "--quiet", "--formula", "--no-ask", "jq"],
+                    (0, "installed\n", ""),
+                ),
                 (
                     [BREW, "cleanup", "--prune=all", "--dry-run"],
                     (0, "Would remove: /cache/archive (1GB)\n", ""),
@@ -490,7 +573,7 @@ class HomebrewManagerTests(unittest.TestCase):
                     [BREW, "outdated", "--json=v2", "--formula"],
                     json_response(formulae=[{"name": "jq", "pinned": False}]),
                 ),
-                ([BREW, "upgrade", "--no-ask", "--formula"], (0, "upgraded\n", "")),
+                ([BREW, "upgrade", "--quiet", "--no-ask", "--formula"], (0, "upgraded\n", "")),
                 ([BREW, "cleanup", "--prune=all", "--dry-run"], (0, "", "")),
             ]
         )

@@ -107,7 +107,9 @@ upgrade_candidates:
   returned: always
   type: dict
 needs_sudo:
-  description: Whether a failed cask-capable command needs a sudo password retry.
+  description:
+    - Whether a failed cask-capable command needs a sudo password retry.
+    - Raw command streams are omitted when true because the role handles this as expected control flow.
   returned: always
   type: bool
 cleanup_candidates:
@@ -322,6 +324,47 @@ def is_sudo_password_failure(error, password_was_supplied):
     return any(pattern.search(output) for pattern in SUDO_FAILURE_PATTERNS)
 
 
+def failure_result(manager, error):
+    needs_sudo = is_sudo_password_failure(
+        error,
+        password_was_supplied=bool(manager and manager.sudo_password is not None),
+    )
+    result = {
+        "changed": manager.changed if manager else False,
+        "msg": error.message,
+        "homebrew_updated": manager.homebrew_updated if manager else False,
+        "cleanup_candidates": manager.cleanup_candidates if manager else False,
+        "cleanup_checked": manager.cleanup_checked if manager else False,
+        "cleanup_performed": manager.cleanup_performed if manager else False,
+        "command_timings": manager.command_timings if manager else [],
+        "install_candidates": manager.install_candidates if manager else {"formulas": [], "casks": []},
+        "upgrade_candidates": manager.upgrade_candidates if manager else {"formulas": [], "casks": []},
+        "needs_sudo": needs_sudo,
+    }
+    if error.command is not None:
+        result.update(
+            {
+                "failed_command": error.command,
+                "rc": error.rc,
+            }
+        )
+        if needs_sudo:
+            # The role treats this failure as a prompt-and-retry signal. Avoid returning the full
+            # transcript as msg, stdout, stderr, and Ansible-generated line arrays for that expected
+            # control flow; unexpected failures retain their complete diagnostics below.
+            result["msg"] = "Homebrew requires a sudo password to continue %s" % summarize_command(
+                error.command
+            )
+        else:
+            result.update(
+                {
+                    "stdout": error.stdout,
+                    "stderr": error.stderr,
+                }
+            )
+    return result
+
+
 @contextmanager
 def sudo_askpass(password):
     descriptor = None
@@ -379,6 +422,9 @@ class HomebrewManager:
         self.environment = {
             "HOMEBREW_NO_ASK": "1",
             "HOMEBREW_NO_AUTO_UPDATE": "1",
+            "HOMEBREW_NO_COLOR": "1",
+            "HOMEBREW_NO_EMOJI": "1",
+            "HOMEBREW_NO_ENV_HINTS": "1",
             "LANGUAGE": "C",
             "LC_ALL": "C",
         }
@@ -485,13 +531,13 @@ class HomebrewManager:
             return
 
         if self.install_candidates["formulas"]:
-            command = [self.brew_path, "install", "--formula", "--no-ask"]
+            command = [self.brew_path, "install", "--quiet", "--formula", "--no-ask"]
             self._run_command(command + self.install_candidates["formulas"])
             self.package_changed = True
             self.changed = True
 
         if self.install_candidates["casks"]:
-            command = [self.brew_path, "install", "--cask", "--no-ask"]
+            command = [self.brew_path, "install", "--quiet", "--cask", "--no-ask"]
             self._run_command(command + self.install_candidates["casks"], sudo_capable=True)
             self.package_changed = True
             self.changed = True
@@ -507,7 +553,7 @@ class HomebrewManager:
         return command
 
     def _upgrade_command(self):
-        command = [self.brew_path, "upgrade", "--no-ask"]
+        command = [self.brew_path, "upgrade", "--quiet", "--no-ask"]
         if self.manage_formula_namespace and not self.manage_cask_namespace:
             command.append("--formula")
         elif self.manage_cask_namespace and not self.manage_formula_namespace:
@@ -654,31 +700,7 @@ def main():
         )
         module.exit_json(**manager.run())
     except HomebrewError as error:
-        result = {
-            "changed": manager.changed if manager else False,
-            "msg": error.message,
-            "homebrew_updated": manager.homebrew_updated if manager else False,
-            "cleanup_candidates": manager.cleanup_candidates if manager else False,
-            "cleanup_checked": manager.cleanup_checked if manager else False,
-            "cleanup_performed": manager.cleanup_performed if manager else False,
-            "command_timings": manager.command_timings if manager else [],
-            "install_candidates": manager.install_candidates if manager else {"formulas": [], "casks": []},
-            "upgrade_candidates": manager.upgrade_candidates if manager else {"formulas": [], "casks": []},
-            "needs_sudo": is_sudo_password_failure(
-                error,
-                password_was_supplied=bool(manager and manager.sudo_password is not None),
-            ),
-        }
-        if error.command is not None:
-            result.update(
-                {
-                    "failed_command": error.command,
-                    "rc": error.rc,
-                    "stdout": error.stdout,
-                    "stderr": error.stderr,
-                }
-            )
-        module.fail_json(**result)
+        module.fail_json(**failure_result(manager, error))
 
 
 if __name__ == "__main__":
