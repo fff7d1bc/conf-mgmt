@@ -15,6 +15,7 @@
           - codex
       dnf:
         packages:
+          - iotop
           - acl
           - bubblewrap
           - ncdu
