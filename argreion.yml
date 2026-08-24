@@ -1,0 +1,111 @@
+#!/usr/bin/env ansible-playbook
+
+- name: argreion
+  gather_facts: true
+  gather_subset:
+    - min
+  hosts: [all]
+  vars:
+    confmgmt:
+      homebrew:
+        user: piotr
+        formulas:
+          - lima
+          - ab-av1
+          - aria2
+          - borgbackup
+          - colordiff
+          - coreutils
+          - moreutils
+          - ffmpeg-full
+          - findutils
+          - golang
+          - gawk
+          - gnu-sed
+          - gnu-tar
+          - grep
+          - htop
+          - iperf3
+          - ipython
+          - jc
+          - jq
+          - lftp
+          - lz4
+          - megatools
+          - mkvtoolnix
+          - mpv
+          - ncdu
+          - nmap
+          - nvm
+          - 7zip
+          - pip-tools
+          - pipx
+          - poetry
+          - pv
+          - pwgen
+          - qrencode
+          - qpdf
+          - rclone
+          - ripgrep
+          - rsync
+          - scrcpy
+          - socat
+          - sshuttle
+          - svt-av1
+          - telnet
+          - tmux
+          - tox
+          - wget
+          - wgetpaste
+          - xz
+          - yt-dlp
+          - zstd
+          - vim
+          - codex
+          - make
+          - midnight-commander
+        casks:
+          - dockdoor
+          - alfred
+          - android-platform-tools
+          - balenaetcher
+          - calibre
+          - fbreader
+          - firefox
+          - font-jetbrains-mono
+          - freecad
+          - gimp
+          - google-chrome
+          - iina
+          - keepassxc
+          - libreoffice
+          - linearmouse
+          - localsend
+          - losslesscut
+          - makemkv
+          - monitorcontrol
+          - openscad
+          - opera
+          - orcaslicer
+          - rancher
+          - rar
+          - raspberry-pi-imager
+          - rectangle
+          - signal
+          - stats
+          - syncthing-app
+          - tailscale-app
+          - utm
+      home_files:
+        files:
+          piotr:
+            - bash
+            - zsh
+            - mc
+            - mpv
+            - wezterm
+            - git
+            - vim
+            - tmux
+  roles:
+    - role: meta
