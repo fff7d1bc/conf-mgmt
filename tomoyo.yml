@@ -65,12 +65,14 @@
           root:
             - bash
             - zsh
+            - mc
             - tmux
             - git
             - vim
           piotr:
             - bash
             - zsh
+            - mc
             - mpv
             - wezterm
             - tmux

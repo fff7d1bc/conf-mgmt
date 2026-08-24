@@ -76,6 +76,7 @@
           piotr:
             - bash
             - zsh
+            - mc
             - mpv
             - wezterm
             - tmux

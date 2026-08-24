@@ -32,12 +32,14 @@
           root:
             - bash
             - zsh
+            - mc
             - tmux
             - git
             - vim
           deck:
             - bash
             - zsh
+            - mc
             - mpv
             - wezterm
             - tmux

@@ -20,12 +20,14 @@
           pi:
             - bash
             - zsh
+            - mc
             - tmux
             - git
             - vim
           root:
             - bash
             - zsh
+            - mc
             - tmux
             - git
             - vim
