@@ -1,0 +1,34 @@
+- name: ~/.local/share/mc/skins directory
+  file:
+    state: directory
+    path: '{{ home }}/.local/share/mc/skins'
+    owner: '{{ uid }}'
+    group: '{{ gid }}'
+    mode: 0700
+
+- name: Midnight Commander skin
+  copy:
+    src: mc/dark_custom.ini
+    dest: '{{ home }}/.local/share/mc/skins/dark_custom.ini'
+    owner: '{{ uid }}'
+    group: '{{ gid }}'
+    mode: 0600
+
+- name: ~/.config/mc directory
+  file:
+    state: directory
+    path: '{{ home }}/.config/mc'
+    owner: '{{ uid }}'
+    group: '{{ gid }}'
+    mode: 0700
+
+- name: Midnight Commander skin selection
+  community.general.ini_file:
+    path: '{{ home }}/.config/mc/ini'
+    section: Midnight-Commander
+    option: skin
+    value: dark_custom
+    no_extra_spaces: true
+    owner: '{{ uid }}'
+    group: '{{ gid }}'
+    mode: 0600
