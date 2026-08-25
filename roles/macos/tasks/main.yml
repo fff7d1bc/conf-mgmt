@@ -1,0 +1,140 @@
+- name: macos
+  tags: [macos]
+  when: ansible_facts.system == 'Darwin'
+  block:
+    - name: validate macos configuration
+      assert:
+        that:
+          - confmgmt.macos is mapping
+          - confmgmt.macos.user is defined
+          - macos_config.user | length > 0
+          - macos_config.keyboard.initial_key_repeat | int > 0
+          - macos_config.keyboard.key_repeat | int > 0
+          - macos_config.dock.orientation in ['left', 'bottom', 'right']
+          - macos_config.dock.tilesize | int > 0
+          - macos_config.mission_control.option_number_desktop_shortcuts | int >= 0
+          - macos_config.mission_control.option_number_desktop_shortcuts | int <= 6
+        quiet: True
+        fail_msg: confmgmt.macos.user must name the account whose preferences are managed
+
+    - name: manage user preferences
+      become: "{{ ansible_facts.user_id != macos_config.user }}"
+      become_user: "{{ macos_config.user }}"
+      confmgmt_macos_defaults:
+        preferences:
+          - domain: NSGlobalDomain
+            key: com.apple.swipescrolldirection
+            value: "{{ macos_config.keyboard.swipe_scroll_direction }}"
+          - domain: NSGlobalDomain
+            key: InitialKeyRepeat
+            value: "{{ macos_config.keyboard.initial_key_repeat }}"
+          - domain: NSGlobalDomain
+            key: KeyRepeat
+            value: "{{ macos_config.keyboard.key_repeat }}"
+          - domain: NSGlobalDomain
+            key: com.apple.keyboard.fnState
+            value: "{{ macos_config.keyboard.fn_state }}"
+          - domain: com.apple.HIToolbox
+            key: AppleFnUsageType
+            value: "{{ macos_config.keyboard.fn_usage_type }}"
+          - domain: com.apple.universalaccess
+            key: reduceTransparency
+            value: "{{ macos_config.accessibility.reduce_transparency }}"
+          - domain: com.apple.universalaccess
+            key: reduceMotion
+            value: "{{ macos_config.accessibility.reduce_motion }}"
+          - domain: com.apple.universalaccess
+            key: closeViewScrollWheelToggle
+            value: "{{ macos_config.accessibility.close_view_scroll_wheel_toggle }}"
+          - domain: com.apple.dock
+            key: orientation
+            value: "{{ macos_config.dock.orientation }}"
+          - domain: com.apple.dock
+            key: autohide
+            value: "{{ macos_config.dock.autohide }}"
+          - domain: com.apple.dock
+            key: tilesize
+            value: "{{ macos_config.dock.tilesize }}"
+          - domain: com.apple.dock
+            key: mru-spaces
+            value: "{{ macos_config.dock.mru_spaces }}"
+          - domain: NSGlobalDomain
+            key: com.apple.sound.beep.volume
+            value: "{{ macos_config.sound.beep_volume }}"
+          - domain: NSGlobalDomain
+            key: com.apple.sound.uiaudio.enabled
+            value: "{{ 1 if macos_config.sound.ui_audio_enabled else 0 }}"
+          # Normalize the legacy string written by `defaults write ... YES` to a native boolean.
+          - domain: com.apple.finder
+            key: AppleShowAllFiles
+            value: "{{ macos_config.finder.show_all_files }}"
+          - domain: com.apple.coreservices.useractivityd
+            host: currentHost
+            key: ActivityAdvertisingAllowed
+            value: "{{ macos_config.continuity.handoff }}"
+          - domain: com.apple.coreservices.useractivityd
+            host: currentHost
+            key: ActivityReceivingAllowed
+            value: "{{ macos_config.continuity.handoff }}"
+          - domain: com.apple.controlcenter
+            host: currentHost
+            key: AirplayReceiverEnabled
+            value: "{{ macos_config.continuity.airplay_receiver }}"
+          - domain: com.apple.symbolichotkeys
+            key: AppleSymbolicHotKeys
+            dict_mode: merge
+            value:
+              '32':
+                enabled: "{{ macos_config.mission_control.option_escape_shortcut }}"
+                value:
+                  type: standard
+                  parameters: [65535, 53, 524288]
+              '118':
+                enabled: "{{ macos_config.mission_control.option_number_desktop_shortcuts | int >= 1 }}"
+                value:
+                  type: standard
+                  parameters: [49, 18, 524288]
+              '119':
+                enabled: "{{ macos_config.mission_control.option_number_desktop_shortcuts | int >= 2 }}"
+                value:
+                  type: standard
+                  parameters: [50, 19, 524288]
+              '120':
+                enabled: "{{ macos_config.mission_control.option_number_desktop_shortcuts | int >= 3 }}"
+                value:
+                  type: standard
+                  parameters: [51, 20, 524288]
+              '121':
+                enabled: "{{ macos_config.mission_control.option_number_desktop_shortcuts | int >= 4 }}"
+                value:
+                  type: standard
+                  parameters: [52, 21, 524288]
+              '122':
+                enabled: "{{ macos_config.mission_control.option_number_desktop_shortcuts | int >= 5 }}"
+                value:
+                  type: standard
+                  parameters: [53, 23, 524288]
+              '123':
+                enabled: "{{ macos_config.mission_control.option_number_desktop_shortcuts | int >= 6 }}"
+                value:
+                  type: standard
+                  parameters: [54, 22, 524288]
+      notify: macOS login required
+
+    # Missing hot-corner preferences mean "no action" and avoid depending on private numeric
+    # action identifiers that have changed meaning across macOS releases.
+    - name: clear Dock hot corners
+      when: macos_config.dock.clear_hot_corners | bool
+      become: "{{ ansible_facts.user_id != macos_config.user }}"
+      become_user: "{{ macos_config.user }}"
+      confmgmt_macos_defaults:
+        preferences:
+          - {domain: com.apple.dock, key: wvous-tl-corner, state: absent}
+          - {domain: com.apple.dock, key: wvous-tl-modifier, state: absent}
+          - {domain: com.apple.dock, key: wvous-tr-corner, state: absent}
+          - {domain: com.apple.dock, key: wvous-tr-modifier, state: absent}
+          - {domain: com.apple.dock, key: wvous-bl-corner, state: absent}
+          - {domain: com.apple.dock, key: wvous-bl-modifier, state: absent}
+          - {domain: com.apple.dock, key: wvous-br-corner, state: absent}
+          - {domain: com.apple.dock, key: wvous-br-modifier, state: absent}
+      notify: macOS login required

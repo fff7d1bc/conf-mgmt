@@ -30,3 +30,21 @@ Configuration as a code for operating systems, built around Ansible.
 ## locals.yml
 
 Special file `locals.yml` in the root of the repository is meant to hold additonal configuration that is not meant to be checked into git.
+
+## macOS preferences
+
+The `macos` role requires the account whose preferences it manages. Other host inputs are
+recursively merged with the shared defaults, so a playbook can override only the values that differ:
+
+```yaml
+confmgmt:
+  macos:
+    user: piotr
+    dock:
+      orientation: bottom
+```
+
+`confmgmt.macos.user` is mandatory and independent of other roles. The role is skipped on
+non-macOS hosts. Quit System Settings before applying the role so it cannot overwrite externally
+managed preferences. The role does not restart applications or services. After a changed run, log
+out and back in before expecting the managed preferences to take effect.

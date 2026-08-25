@@ -1,0 +1,3 @@
+- name: macOS login required
+  debug:
+    msg: Log out and back in before expecting changed macOS preferences to take effect

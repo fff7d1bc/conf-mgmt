@@ -95,6 +95,8 @@
           - syncthing-app
           - tailscale-app
           - utm
+      macos:
+        user: piotr
       home_files:
         files:
           piotr:

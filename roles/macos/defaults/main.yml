@@ -1,0 +1,55 @@
+macos_default_config:
+  keyboard:
+    # System Settings -> Trackpad -> Scroll & Zoom -> Natural scrolling. False disables it.
+    swipe_scroll_direction: False
+    # Lower values make key repetition begin sooner and run faster. These values correspond to the
+    # shortest delay and fastest repeat choices in System Settings.
+    initial_key_repeat: 15.0
+    key_repeat: 2.0
+    # True makes the top-row keys act as standard F1, F2, and so on without holding Fn.
+    fn_state: True
+    # System Settings -> Keyboard -> Press Globe key to. AppleFnUsageType 0 means Do Nothing.
+    fn_usage_type: 0
+
+  accessibility:
+    reduce_transparency: True
+    reduce_motion: True
+    # System Settings -> Accessibility -> Zoom -> Use scroll gesture with modifier keys to zoom.
+    close_view_scroll_wheel_toggle: True
+
+  dock:
+    orientation: left
+    autohide: True
+    # com.apple.dock tilesize is the Dock size slider.
+    tilesize: 45.0
+    # System Settings -> Desktop & Dock -> Mission Control -> Automatically rearrange Spaces
+    # based on most recent use. False keeps desktop numbers in their visible order.
+    mru_spaces: False
+    # Remove all four corner action and modifier preferences so every hot corner is "No Action."
+    clear_hot_corners: True
+
+  sound:
+    # com.apple.sound.beep.volume is the alert-volume slider.
+    beep_volume: 0.0
+    # com.apple.sound.uiaudio.enabled controls "Play user interface sound effects."
+    ui_audio_enabled: False
+
+  finder:
+    # AppleShowAllFiles controls whether Finder shows hidden files.
+    show_all_files: True
+
+  continuity:
+    # Handoff needs both the activity-advertising and activity-receiving preferences.
+    handoff: False
+    airplay_receiver: False
+
+  mission_control:
+    # AppleSymbolicHotKeys entry 32. This binds Option+Escape to Mission Control.
+    option_escape_shortcut: True
+    # AppleSymbolicHotKeys entries 118-123. This enables Option+1 through Option+N shortcuts; it
+    # does not create the corresponding Mission Control desktops.
+    option_number_desktop_shortcuts: 6
+
+# Host playbooks override only the values they need under confmgmt.macos; recursive merging keeps
+# the remainder of the role's opinionated defaults shared across Macs.
+macos_config: "{{ macos_default_config | combine(confmgmt.macos | default({}, true), recursive=True) }}"
