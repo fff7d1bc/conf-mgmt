@@ -26,6 +26,7 @@ Configuration as a code for operating systems, built around Ansible.
 - `syntaxcheck` runs the given playbook through the local execution path with `--syntax-check`.
 - For `remote`, if host is not provided, name of playbook without the `.yml` prefix is used as hostname. When user is not provided in target, it defaults to `root`.
 - Everything after `--` is passed to `ansible-playbook`.
+- Runs that report changes end with a controller-side summary of the changed task names.
 
 ## locals.yml
 

@@ -34,6 +34,7 @@
           assert:
             that: apt_repository_name in apt_repository_definitions
             fail_msg: "Unsupported apt repository: {{ apt_repository_name }}"
+            quiet: True
           loop: "{{ confmgmt.apt.repositories }}"
           loop_control:
             loop_var: apt_repository_name
