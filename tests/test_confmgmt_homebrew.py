@@ -379,6 +379,89 @@ class HomebrewManagerTests(unittest.TestCase):
             if "SUDO_ASKPASS" in environment:
                 self.assertFalse(os.path.exists(environment["SUDO_ASKPASS"]))
 
+    def test_missing_glibc_is_installed_before_other_formulae(self):
+        module = FakeModule(
+            [
+                (
+                    [BREW, "info", "--json=v2", "glibc", "jq"],
+                    json_response(
+                        formulae=[
+                            formula("glibc", installed=False),
+                            formula("jq", installed=False),
+                        ]
+                    ),
+                ),
+                (
+                    [BREW, "install", "--quiet", "--formula", "--no-ask", "glibc"],
+                    (0, "installed glibc\n", ""),
+                ),
+                (
+                    [BREW, "install", "--quiet", "--formula", "--no-ask", "jq"],
+                    (0, "installed jq\n", ""),
+                ),
+            ]
+        )
+
+        result = self.manager(module, formulas=["glibc", "jq"]).run()
+
+        module.assert_complete()
+        self.assertTrue(result["changed"])
+        self.assertEqual(result["install_candidates"]["formulas"], ["glibc", "jq"])
+
+    def test_check_mode_predicts_glibc_bootstrap_without_installing(self):
+        module = FakeModule(
+            [
+                (
+                    [BREW, "info", "--json=v2", "glibc", "jq"],
+                    json_response(
+                        formulae=[
+                            formula("glibc", installed=False),
+                            formula("jq", installed=False),
+                        ]
+                    ),
+                ),
+            ],
+            check_mode=True,
+        )
+
+        result = self.manager(module, formulas=["glibc", "jq"]).run()
+
+        module.assert_complete()
+        self.assertTrue(result["changed"])
+        self.assertEqual(result["install_candidates"]["formulas"], ["glibc", "jq"])
+        self.assertEqual([command[1] for command, unused in module.calls], ["info"])
+
+    def test_failure_after_glibc_bootstrap_preserves_changed_state(self):
+        module = FakeModule(
+            [
+                (
+                    [BREW, "info", "--json=v2", "glibc", "jq"],
+                    json_response(
+                        formulae=[
+                            formula("glibc", installed=False),
+                            formula("jq", installed=False),
+                        ]
+                    ),
+                ),
+                (
+                    [BREW, "install", "--quiet", "--formula", "--no-ask", "glibc"],
+                    (0, "installed glibc\n", ""),
+                ),
+                (
+                    [BREW, "install", "--quiet", "--formula", "--no-ask", "jq"],
+                    (1, "", "failed to install jq\n"),
+                ),
+            ]
+        )
+        manager = self.manager(module, formulas=["glibc", "jq"])
+
+        with self.assertRaises(HOMEBREW.HomebrewError):
+            manager.run()
+
+        module.assert_complete()
+        self.assertTrue(manager.changed)
+        self.assertTrue(manager.package_changed)
+
     def test_check_mode_reports_changes_without_mutating_commands(self):
         module = FakeModule(
             [

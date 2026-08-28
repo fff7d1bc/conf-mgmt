@@ -9,6 +9,7 @@ short_description: Manage this repository's Homebrew packages in bulk
 description:
   - Updates Homebrew, installs declared formulae and casks, and upgrades installed packages.
   - Uses bulk Homebrew commands rather than invoking Homebrew once per package.
+  - Installs a missing, explicitly declared C(glibc) before other formulae.
   - Supports Homebrew's nested sudo calls for cask operations through SUDO_ASKPASS.
 options:
   formulas:
@@ -530,9 +531,19 @@ class HomebrewManager:
                 self.changed = True
             return
 
-        if self.install_candidates["formulas"]:
+        formula_candidates = self.install_candidates["formulas"]
+        if "glibc" in formula_candidates:
+            # GCC's Linux post-install uses brewed glibc when present; without it Homebrew assumes
+            # the host provides /usr/bin/cc, which minimal systems such as SteamOS omit.
             command = [self.brew_path, "install", "--quiet", "--formula", "--no-ask"]
-            self._run_command(command + self.install_candidates["formulas"])
+            self._run_command(command + ["glibc"])
+            self.package_changed = True
+            self.changed = True
+            formula_candidates = [name for name in formula_candidates if name != "glibc"]
+
+        if formula_candidates:
+            command = [self.brew_path, "install", "--quiet", "--formula", "--no-ask"]
+            self._run_command(command + formula_candidates)
             self.package_changed = True
             self.changed = True
 
