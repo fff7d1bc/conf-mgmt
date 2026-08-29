@@ -68,6 +68,9 @@
           - domain: com.apple.finder
             key: AppleShowAllFiles
             value: "{{ macos_config.finder.show_all_files }}"
+          - domain: com.apple.finder
+            key: _FXSortFoldersFirst
+            value: "{{ macos_config.finder.folders_first_when_sorting_by_name }}"
           - domain: com.apple.coreservices.useractivityd
             host: currentHost
             key: ActivityAdvertisingAllowed

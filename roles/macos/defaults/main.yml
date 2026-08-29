@@ -37,6 +37,8 @@ macos_default_config:
   finder:
     # AppleShowAllFiles controls whether Finder shows hidden files.
     show_all_files: True
+    # Finder -> Settings -> Advanced -> Keep folders on top: In windows when sorting by name.
+    folders_first_when_sorting_by_name: True
 
   continuity:
     # Handoff needs both the activity-advertising and activity-receiving preferences.
