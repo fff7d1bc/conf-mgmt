@@ -19,6 +19,7 @@
           - mpv
           - asdf
           - make
+          - glibc
           - gcc
           - golang
       sshd:
