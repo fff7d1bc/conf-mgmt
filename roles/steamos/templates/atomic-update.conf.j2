@@ -1,0 +1,4 @@
+# Additional files managed by Ansible that must survive atomic updates.
+{% for steamos_keep_path in confmgmt.steamos.preserve %}
+{{ steamos_keep_path }}
+{% endfor %}

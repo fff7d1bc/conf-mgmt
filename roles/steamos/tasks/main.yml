@@ -24,14 +24,12 @@
 
     - name: atomic update keep list
       when: confmgmt.steamos.preserve | default([]) | length > 0
-      copy:
+      template:
+        src: atomic-update.conf.j2
         dest: /etc/atomic-update.conf.d/99-confmgmt.conf
         owner: root
         group: root
         mode: "0644"
-        content: |
-          # Additional files managed by Ansible that must survive atomic updates.
-          {{ confmgmt.steamos.preserve | join('\n') }}
 
     - name: remove unused atomic update keep list
       when: confmgmt.steamos.preserve | default([]) | length == 0
