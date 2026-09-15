@@ -17,6 +17,7 @@
           - moreutils
           - findutils
           - gawk
+          - git
           - gnu-sed
           - gnu-tar
           - grep
