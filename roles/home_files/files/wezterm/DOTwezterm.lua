@@ -30,6 +30,8 @@ if wezterm.target_triple:find('apple') then
   -- See: https://github.com/wezterm/wezterm/issues/7271
   -- See: https://github.com/wezterm/wezterm/issues/7275
   window_decorations = 'TITLE | RESIZE | MACOS_FORCE_DISABLE_SHADOW'
+  -- Keep the title bar opaque on macOS 27 by matching the terminal background (requires nightly).
+  window_decorations = window_decorations .. ' | MACOS_USE_BACKGROUND_COLOR_AS_TITLEBAR_COLOR'
 elseif wezterm.target_triple:find('linux') then
   mods = { 'SUPER', 'ALT' }
 end
