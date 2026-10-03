@@ -41,7 +41,6 @@
       flatpak:
         packages:
           - io.github.ilya_zlobintsev.LACT
-          - it.mijorus.gearlever
       homebrew:
         user: piotr
         formulas:
