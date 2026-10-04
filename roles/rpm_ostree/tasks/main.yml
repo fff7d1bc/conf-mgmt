@@ -6,3 +6,4 @@
       packages: "{{ confmgmt.rpm_ostree.packages | default([]) }}"
       kargs: "{{ confmgmt.rpm_ostree.kargs | default([]) }}"
       upgrade: True
+      busy_timeout: "{{ confmgmt.rpm_ostree.busy_timeout | default(120) }}"

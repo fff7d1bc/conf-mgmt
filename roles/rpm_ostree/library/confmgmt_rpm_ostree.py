@@ -8,8 +8,9 @@ module: confmgmt_rpm_ostree
 short_description: Manage an rpm-ostree deployment in one transaction sequence
 description:
   - Upgrades rpm-ostree, installs declared layered packages, and reconciles kernel arguments.
-  - Uses rpm-ostree's machine-readable status and unchanged exit code instead of parsing messages.
+  - Uses rpm-ostree's machine-readable status and unchanged exit code for deployment state detection.
   - Batches package installation and kernel argument changes to avoid one transaction per item.
+  - Quietly retries transaction-busy errors with bounded backoff, without cancelling other transactions.
 options:
   packages:
     description:
@@ -30,6 +31,14 @@ options:
     description: Stage an operating system upgrade when one is available.
     type: bool
     default: false
+  busy_timeout:
+    description:
+      - Maximum seconds to retry each operation after its first transaction-busy error.
+      - Retries wait 2, 4, 8, then at most 10 seconds, bounded by the remaining timeout.
+      - Does not limit the runtime of a transaction once it starts. Other errors fail immediately.
+      - Must be non-negative. Set to 0 to disable retries.
+    type: int
+    default: 120
   executable:
     description: rpm-ostree executable name or path.
     type: path
@@ -43,6 +52,8 @@ author:
   - conf-mgmt
 notes:
   - Upgrade availability is not predicted in check mode because rpm-ostree documents its preview as unreliable.
+  - Busy detection matches the explicit English CLI error because exit code 1 also covers unrelated failures.
+  - Check mode retries only its read-only queries. Waiting does not itself mark the deployment changed.
 """
 
 EXAMPLES = r"""
@@ -93,6 +104,14 @@ reboot_required:
   description: Whether the default deployment is not the currently booted deployment.
   returned: always
   type: bool
+busy_retries:
+  description: Total retries after transaction-busy errors across all operations.
+  returned: always
+  type: int
+busy_wait_seconds:
+  description: Total seconds spent sleeping between transaction-busy retries, excluding command runtime.
+  returned: always
+  type: float
 failed_command:
   description: Argument list for a failed rpm-ostree command.
   returned: failure
@@ -107,6 +126,7 @@ msg:
 import json
 import re
 import shlex
+import time
 
 from ansible.module_utils.basic import AnsibleModule
 
@@ -285,12 +305,15 @@ def summarize_result(result, check_mode=False):
 
 
 class RpmOstreeManager:
-    def __init__(self, module, executable, packages=None, kargs=None, upgrade=False):
+    def __init__(self, module, executable, packages=None, kargs=None, upgrade=False, busy_timeout=120):
+        if isinstance(busy_timeout, bool) or not isinstance(busy_timeout, int) or busy_timeout < 0:
+            raise RpmOstreeError("busy_timeout must be a non-negative integer")
         self.module = module
         self.executable = executable
         self.packages = normalize_packages(packages or [])
         self.kargs = normalize_kargs(kargs or [])
         self.upgrade = upgrade
+        self.busy_timeout = busy_timeout
         self.result = {
             "changed": False,
             "upgrade_changed": False,
@@ -301,7 +324,49 @@ class RpmOstreeManager:
             "kargs_to_append": [],
             "kargs_changed": False,
             "reboot_required": False,
+            "busy_retries": 0,
+            "busy_wait_seconds": 0.0,
         }
+
+    def retry_busy(self, operation, refresh=None):
+        deadline = None
+        delay = 2
+        retrying = False
+        while True:
+            try:
+                # Refreshes are inside the same retry budget and must be read-only.
+                if retrying and refresh is not None:
+                    refresh()
+                return operation()
+            except RpmOstreeError as error:
+                # rpm-ostree rejects this operation before starting a transaction.
+                # Do not replay arbitrary failures that may have already changed state.
+                if (
+                    error.rc != 1
+                    or not error.stderr.strip().startswith("error: Transaction in progress: ")
+                    or self.busy_timeout == 0
+                ):
+                    raise
+                now = time.monotonic()
+                if deadline is None:
+                    deadline = now + self.busy_timeout
+                remaining = deadline - now
+                if remaining <= 0:
+                    raise RpmOstreeError(
+                        "rpm-ostree remained busy for %s seconds: %s"
+                        % (self.busy_timeout, error.stderr.strip()),
+                        command=error.command,
+                        rc=error.rc,
+                        stdout=error.stdout,
+                        stderr=error.stderr,
+                    ) from error
+                time.sleep(min(delay, remaining))
+                self.result["busy_wait_seconds"] = round(
+                    self.result["busy_wait_seconds"] + time.monotonic() - now, 3
+                )
+                self.result["busy_retries"] += 1
+                delay = min(delay * 2, 10)
+                retrying = True
 
     def command(self, arguments, accepted_rcs=(0,)):
         command = [self.executable] + list(arguments)
@@ -343,17 +408,11 @@ class RpmOstreeManager:
             raise
 
     def run(self):
-        initial_status = self.status()
-        self.result["reboot_required"] = initial_status["reboot_required"]
-        self.result["package_candidates"] = [
-            package
-            for package in self.packages
-            if package not in initial_status["requested_packages"]
-        ]
+        self.retry_busy(self.plan_packages)
 
         if self.module.check_mode:
             self.result["upgrade_check_skipped"] = self.upgrade
-            self.plan_kargs()
+            self.retry_busy(self.plan_kargs)
             self.result["changed"] = bool(
                 self.result["package_candidates"] or self.result["kargs_to_append"]
             )
@@ -361,26 +420,48 @@ class RpmOstreeManager:
             return self.result
 
         if self.upgrade:
-            rc, unused_stdout, unused_stderr = self.command(
-                ["upgrade", "--unchanged-exit-77"], accepted_rcs=(0, 77)
+            retries_before_upgrade = self.result["busy_retries"]
+            rc, unused_stdout, unused_stderr = self.retry_busy(
+                lambda: self.command(["upgrade", "--unchanged-exit-77"], accepted_rcs=(0, 77))
             )
             self.result["upgrade_changed"] = rc == 0
             self.result["changed"] |= self.result["upgrade_changed"]
+            if self.result["busy_retries"] != retries_before_upgrade:
+                self.retry_busy(self.plan_packages)
 
-        if self.result["package_candidates"]:
-            rc, unused_stdout, unused_stderr = self.command(
-                [
-                    "install",
-                    "--allow-inactive",
-                    "--idempotent",
-                    "--unchanged-exit-77",
-                ]
-                + self.result["package_candidates"],
-                accepted_rcs=(0, 77),
-            )
-            self.result["packages_changed"] = rc == 0
-            self.result["changed"] |= self.result["packages_changed"]
+        self.result["packages_changed"] = self.retry_busy(
+            self.install_packages, refresh=self.plan_packages
+        )
+        self.result["changed"] |= self.result["packages_changed"]
 
+        self.result["kargs_changed"] = self.retry_busy(self.reconcile_kargs)
+        self.result["changed"] |= self.result["kargs_changed"]
+
+        final_status = self.retry_busy(self.status)
+        self.result["reboot_required"] = final_status["reboot_required"]
+        self.result["msg"] = summarize_result(self.result)
+        return self.result
+
+    def plan_packages(self):
+        status = self.status()
+        self.result["reboot_required"] = status["reboot_required"]
+        self.result["package_candidates"] = [
+            package for package in self.packages if package not in status["requested_packages"]
+        ]
+
+    def install_packages(self):
+        if not self.result["package_candidates"]:
+            return False
+        rc, unused_stdout, unused_stderr = self.command(
+            ["install", "--allow-inactive", "--idempotent", "--unchanged-exit-77"]
+            + self.result["package_candidates"],
+            accepted_rcs=(0, 77),
+        )
+        return rc == 0
+
+    def reconcile_kargs(self):
+        # Re-read on every retry: another transaction may have replaced the values
+        # we were about to delete. Replaying the old strict deletes would be unsafe.
         self.plan_kargs()
         if self.result["kargs_to_remove"] or self.result["kargs_to_append"]:
             arguments = ["kargs", "--unchanged-exit-77"]
@@ -397,13 +478,8 @@ class RpmOstreeManager:
             rc, unused_stdout, unused_stderr = self.command(
                 arguments, accepted_rcs=(0, 77)
             )
-            self.result["kargs_changed"] = rc == 0
-            self.result["changed"] |= self.result["kargs_changed"]
-
-        final_status = self.status()
-        self.result["reboot_required"] = final_status["reboot_required"]
-        self.result["msg"] = summarize_result(self.result)
-        return self.result
+            return rc == 0
+        return False
 
     def plan_kargs(self):
         if not self.kargs:
@@ -421,6 +497,7 @@ def main():
             "packages": {"type": "list", "elements": "str", "default": []},
             "kargs": {"type": "list", "elements": "str", "default": []},
             "upgrade": {"type": "bool", "default": False},
+            "busy_timeout": {"type": "int", "default": 120},
             "executable": {"type": "path", "default": "rpm-ostree"},
         },
         supports_check_mode=True,
@@ -434,6 +511,7 @@ def main():
             packages=module.params["packages"],
             kargs=module.params["kargs"],
             upgrade=module.params["upgrade"],
+            busy_timeout=module.params["busy_timeout"],
         )
         module.exit_json(**manager.run())
     except RpmOstreeError as error:
