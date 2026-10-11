@@ -23,6 +23,9 @@ fi
 
 umask 077
 
+#python_runtime="python3"
+python_runtime="python3.14"
+
 venv_dir="${HOME}/.cache/conf-mgmt/venv"
 script_path="$(readlink -f "$0")"
 work_dir="${script_path%/*}"
@@ -74,12 +77,13 @@ split_args() {
 }
 
 
+ 
 setup_and_load_venv() {
     if ! [ -d "${venv_dir}" ] || ! cmp "${work_dir}/requirements.txt" "${venv_dir}/requirements.txt" >/dev/null 2>&1; then
         einfo 'Setting up new virtualenv'
         rm -rf "${venv_dir}"
         mkdir -p "${venv_dir}"
-        python3 -m venv "${venv_dir}"
+        "${python_runtime}" -m venv "${venv_dir}"
         . "${venv_dir}/bin/activate"
         pip install -r "${work_dir}/requirements.txt"
         cp "${work_dir}/requirements.txt" "${venv_dir}/requirements.txt"
@@ -95,7 +99,7 @@ handler_local() {
 
     # Ansible's `become_user` will break when we run as root `./runner local` unless we override the
     # interpreter path to any other `python3` that is not within the conf-mgmt's venv.
-    for python3_path in $(which -a python3); do
+    for python3_path in $(which -a "${python_runtime}"); do
         case "${python3_path}" in
             "${venv_dir}"/*)
                 continue
