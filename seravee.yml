@@ -58,6 +58,8 @@
           - make
         casks:
           - dockdoor
+          - vorssaint
+          - alfred
           - firefox
           - font-jetbrains-mono
           - gimp
