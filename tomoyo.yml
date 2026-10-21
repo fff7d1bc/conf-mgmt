@@ -38,6 +38,8 @@
           - kernel-headers
           - golang
           - rust
+          - python3.14
+          - ncdu
       flatpak:
         packages:
           - io.github.ilya_zlobintsev.LACT
