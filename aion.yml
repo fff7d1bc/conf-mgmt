@@ -15,6 +15,7 @@
           - codex
       dnf:
         packages:
+          - mc
           - netcat
           - socat
           - iotop
