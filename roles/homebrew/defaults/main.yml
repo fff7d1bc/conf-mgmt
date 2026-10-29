@@ -1,0 +1,4 @@
+homebrew_no_quit_casks:
+  - iterm2
+  - wezterm
+  - wezterm@nightly

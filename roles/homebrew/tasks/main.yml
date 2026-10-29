@@ -10,6 +10,7 @@
         update_homebrew: True
         upgrade_all: True
         greedy: True
+        no_quit_casks: "{{ confmgmt.homebrew.no_quit_casks | default(homebrew_no_quit_casks) }}"
         cleanup: on_package_change
       register: homebrew_result
       # A missing sudo password is an expected first-pass result for some casks. Keep unrelated
@@ -34,5 +35,6 @@
         update_homebrew: False
         upgrade_all: True
         greedy: True
+        no_quit_casks: "{{ confmgmt.homebrew.no_quit_casks | default(homebrew_no_quit_casks) }}"
         cleanup: on_package_change
         sudo_password: "{{ homebrew_sudo_password.user_input }}"

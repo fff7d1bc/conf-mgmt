@@ -297,11 +297,13 @@ class HomebrewManagerTests(unittest.TestCase):
             update_homebrew=True,
             upgrade_all=True,
             greedy=True,
+            no_quit_casks=["iterm2", "wezterm", "wezterm@nightly"],
         ).run()
 
         module.assert_complete()
         self.assertFalse(result["changed"])
         self.assertEqual(result["install_candidates"], {"formulas": [], "casks": []})
+        self.assertEqual(result["no_quit_upgrade_candidates"], [])
         self.assertFalse(result["cleanup_candidates"])
         self.assertFalse(result["cleanup_checked"])
         self.assertFalse(result["cleanup_performed"])
@@ -517,11 +519,254 @@ class HomebrewManagerTests(unittest.TestCase):
             upgrade_all=True,
             greedy=True,
             sudo_password="unused",
+            no_quit_casks=["iterm2", "wezterm", "wezterm@nightly"],
         ).run()
 
         module.assert_complete()
         self.assertTrue(result["changed"])
         self.assertNotIn("SUDO_ASKPASS", module.calls[-1][1])
+
+    def test_no_quit_casks_upgrade_first_then_explicit_remaining_batches(self):
+        def sudo_response(command, environment):
+            self.assertIn("SUDO_ASKPASS", environment)
+            self.assertTrue(os.path.exists(environment["SUDO_ASKPASS"]))
+            return (0, "upgraded\n", "")
+
+        module = FakeModule(
+            [
+                ([BREW, "info", "--json=v2", "jq"], json_response(formulae=[formula("jq")])),
+                (
+                    [BREW, "info", "--json=v2", "--cask", "firefox"],
+                    json_response(casks=[cask("firefox")]),
+                ),
+                (
+                    [BREW, "outdated", "--json=v2", "--greedy"],
+                    json_response(
+                        formulae=[{"name": "jq"}],
+                        casks=[
+                            {"token": "wezterm@nightly"},
+                            {"token": "firefox"},
+                            {"token": "iterm2"},
+                            {"token": "wezterm", "pinned": True},
+                        ],
+                    ),
+                ),
+                (
+                    [BREW, "upgrade", "--quiet", "--no-ask", "--cask", "--greedy", "--no-quit",
+                     "iterm2", "wezterm@nightly"],
+                    sudo_response,
+                ),
+                (
+                    [BREW, "upgrade", "--quiet", "--no-ask", "--formula", "jq"],
+                    (0, "upgraded\n", ""),
+                ),
+                (
+                    [BREW, "upgrade", "--quiet", "--no-ask", "--cask", "--greedy", "firefox"],
+                    sudo_response,
+                ),
+                ([BREW, "cleanup", "--prune=all", "--dry-run"], (0, "", "")),
+            ]
+        )
+
+        result = self.manager(
+            module,
+            formulas=["jq"],
+            casks=["firefox"],
+            upgrade_all=True,
+            greedy=True,
+            no_quit_casks=["iterm2", "wezterm", "wezterm@nightly"],
+            sudo_password="test password",
+            cleanup="on_package_change",
+        ).run()
+
+        module.assert_complete()
+        self.assertTrue(result["changed"])
+        self.assertEqual(result["no_quit_upgrade_candidates"], ["iterm2", "wezterm@nightly"])
+        self.assertEqual(
+            result["upgrade_candidates"],
+            {"formulas": ["jq"], "casks": ["firefox", "iterm2", "wezterm@nightly"]},
+        )
+        self.assertNotIn("SUDO_ASKPASS", module.calls[4][1])
+        self.assertTrue(result["cleanup_checked"])
+        self.assertEqual(result["command_timings"][3]["command"],
+                         "brew upgrade --quiet --no-ask --cask --greedy --no-quit")
+        for command, environment in module.calls:
+            if "SUDO_ASKPASS" in environment:
+                self.assertFalse(os.path.exists(environment["SUDO_ASKPASS"]))
+
+    def test_no_quit_only_batch_never_runs_an_unrestricted_followup(self):
+        module = FakeModule(
+            [
+                (
+                    [BREW, "info", "--json=v2", "--cask", "wezterm@nightly"],
+                    json_response(casks=[cask("wezterm@nightly")]),
+                ),
+                (
+                    [BREW, "outdated", "--json=v2", "--cask", "--greedy"],
+                    json_response(casks=[{"token": "wezterm@nightly"}]),
+                ),
+                (
+                    [BREW, "upgrade", "--quiet", "--no-ask", "--cask", "--greedy", "--no-quit",
+                     "wezterm@nightly"],
+                    (0, "upgraded\n", ""),
+                ),
+            ]
+        )
+
+        result = self.manager(
+            module, casks=["wezterm@nightly"], upgrade_all=True, greedy=True,
+            no_quit_casks=["WEZTERM@NIGHTLY", "wezterm@nightly"],
+        ).run()
+
+        module.assert_complete()
+        self.assertTrue(result["changed"])
+        self.assertEqual(result["no_quit_upgrade_candidates"], ["wezterm@nightly"])
+        self.assertEqual(len(module.calls), 3)
+
+    def test_no_quit_names_match_tap_qualified_cask_tokens(self):
+        token = "owner/casks/wezterm"
+        for protected_name in ("wezterm", token):
+            with self.subTest(protected_name=protected_name):
+                module = FakeModule(
+                    [
+                        (
+                            [BREW, "info", "--json=v2", "--cask", "wezterm"],
+                            json_response(casks=[cask("wezterm", full_token=token, tap="owner/casks")]),
+                        ),
+                        (
+                            [BREW, "outdated", "--json=v2", "--cask"],
+                            json_response(casks=[{"token": "wezterm", "full_token": token}]),
+                        ),
+                        (
+                            [BREW, "upgrade", "--quiet", "--no-ask", "--cask", "--no-quit", token],
+                            (0, "upgraded\n", ""),
+                        ),
+                    ]
+                )
+
+                result = self.manager(
+                    module, casks=["wezterm"], upgrade_all=True,
+                    no_quit_casks=[protected_name],
+                ).run()
+
+                module.assert_complete()
+                self.assertEqual(result["no_quit_upgrade_candidates"], [token])
+
+    def test_empty_no_quit_list_keeps_the_original_bulk_upgrade(self):
+        module = FakeModule(
+            [
+                (
+                    [BREW, "info", "--json=v2", "--cask", "wezterm"],
+                    json_response(casks=[cask("wezterm")]),
+                ),
+                (
+                    [BREW, "outdated", "--json=v2", "--cask"],
+                    json_response(casks=[{"token": "wezterm"}, {"token": "firefox"}]),
+                ),
+                ([BREW, "upgrade", "--quiet", "--no-ask", "--cask"], (0, "upgraded\n", "")),
+            ]
+        )
+
+        result = self.manager(module, casks=["wezterm"], upgrade_all=True, no_quit_casks=[]).run()
+
+        module.assert_complete()
+        self.assertEqual(result["no_quit_upgrade_candidates"], [])
+        self.assertTrue(result["changed"])
+
+    def test_no_quit_casks_check_mode_predicts_without_mutations(self):
+        module = FakeModule(
+            [
+                (
+                    [BREW, "info", "--json=v2", "--cask", "firefox"],
+                    json_response(casks=[cask("firefox")]),
+                ),
+                (
+                    [BREW, "outdated", "--json=v2", "--cask", "--greedy"],
+                    json_response(casks=[{"token": "wezterm@nightly"}, {"token": "firefox"}]),
+                ),
+            ],
+            check_mode=True,
+        )
+
+        result = self.manager(
+            module, casks=["firefox"], upgrade_all=True, greedy=True,
+            no_quit_casks=["wezterm@nightly"],
+        ).run()
+
+        module.assert_complete()
+        self.assertTrue(result["changed"])
+        self.assertEqual(result["no_quit_upgrade_candidates"], ["wezterm@nightly"])
+        self.assertIn("upgrade 2", result["msg"])
+        self.assertEqual([command[1] for command, unused in module.calls], ["info", "outdated"])
+
+    def test_no_quit_batch_failure_stops_before_regular_upgrades(self):
+        module = FakeModule(
+            [
+                (
+                    [BREW, "info", "--json=v2", "--cask", "firefox"],
+                    json_response(casks=[cask("firefox")]),
+                ),
+                (
+                    [BREW, "outdated", "--json=v2", "--cask"],
+                    json_response(casks=[{"token": "wezterm"}, {"token": "firefox"}]),
+                ),
+                (
+                    [BREW, "upgrade", "--quiet", "--no-ask", "--cask", "--no-quit", "wezterm"],
+                    (1, "download output\n", "checksum mismatch\n"),
+                ),
+            ]
+        )
+        manager = self.manager(module, casks=["firefox"], upgrade_all=True, no_quit_casks=["wezterm"])
+
+        with self.assertRaises(HOMEBREW.HomebrewError) as raised:
+            manager.run()
+
+        module.assert_complete()
+        result = HOMEBREW.failure_result(manager, raised.exception)
+        self.assertFalse(result["changed"])
+        self.assertFalse(result["needs_sudo"])
+        self.assertEqual(result["no_quit_upgrade_candidates"], ["wezterm"])
+        self.assertEqual(result["stderr"], "checksum mismatch\n")
+
+    def test_failure_after_no_quit_batch_preserves_changes_and_sudo_retry_signal(self):
+        module = FakeModule(
+            [
+                (
+                    [BREW, "info", "--json=v2", "--cask", "firefox"],
+                    json_response(casks=[cask("firefox")]),
+                ),
+                (
+                    [BREW, "outdated", "--json=v2", "--cask"],
+                    json_response(casks=[{"token": "wezterm"}, {"token": "firefox"}]),
+                ),
+                (
+                    [BREW, "upgrade", "--quiet", "--no-ask", "--cask", "--no-quit", "wezterm"],
+                    (0, "upgraded\n", ""),
+                ),
+                (
+                    [BREW, "upgrade", "--quiet", "--no-ask", "--cask", "firefox"],
+                    (1, "", "sudo: a password is required\n"),
+                ),
+            ]
+        )
+        manager = self.manager(module, casks=["firefox"], upgrade_all=True, no_quit_casks=["wezterm"])
+
+        with self.assertRaises(HOMEBREW.HomebrewError) as raised:
+            manager.run()
+
+        module.assert_complete()
+        result = HOMEBREW.failure_result(manager, raised.exception)
+        self.assertTrue(result["changed"])
+        self.assertTrue(manager.package_changed)
+        self.assertTrue(result["needs_sudo"])
+        self.assertEqual(result["no_quit_upgrade_candidates"], ["wezterm"])
+        self.assertEqual(result["failed_command"][-1], "firefox")
+
+    def test_invalid_no_quit_cask_is_rejected_before_any_commands(self):
+        module = FakeModule([])
+        with self.assertRaises(HOMEBREW.HomebrewError):
+            self.manager(module, no_quit_casks=["--force"])
+        self.assertEqual(module.calls, [])
 
     def test_formula_input_migrated_to_cross_platform_cask_is_managed(self):
         module = FakeModule(

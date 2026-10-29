@@ -32,6 +32,19 @@ Configuration as a code for operating systems, built around Ansible.
 
 Special file `locals.yml` in the root of the repository is meant to hold additonal configuration that is not meant to be checked into git.
 
+## Homebrew app upgrades
+
+The `homebrew` role upgrades installed `iterm2`, `wezterm`, and `wezterm@nightly` casks first
+with `--no-quit`, so Homebrew does not close the terminal running the playbook. Other outdated
+packages are then upgraded in batches that exclude those casks, including nightly casks that
+can still appear outdated immediately after an upgrade. This uses the existing package metadata
+queries and adds upgrade commands only when a matching cask is outdated.
+
+Override `confmgmt.homebrew.no_quit_casks` to replace that list; an empty list disables this
+behaviour. The list affects upgrades of installed casks, including those absent from the
+playbook's `casks` list, and does not request additional installations. Homebrew must support
+`upgrade --no-quit`. The app bundle is still replaced on disk; restart the app when convenient.
+
 ## macOS preferences
 
 The `macos` role requires the account whose preferences it manages. Other host inputs are

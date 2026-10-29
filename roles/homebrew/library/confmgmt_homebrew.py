@@ -36,6 +36,16 @@ options:
     description: Include auto-updating and latest-version casks during upgrades.
     type: bool
     default: false
+  no_quit_casks:
+    description:
+      - Installed, outdated casks to upgrade first in a separate batch with C(--no-quit).
+      - Matches cask tokens, including tap-qualified tokens when an unqualified name is listed.
+      - Other upgrade candidates are then upgraded in explicit batches that exclude these casks.
+      - Does not install these casks unless they are also declared in O(casks) or O(formulas).
+      - Requires Homebrew with C(brew upgrade --no-quit) support when a matching cask is outdated.
+    type: list
+    elements: str
+    default: []
   cleanup:
     description:
       - Controls when to run C(brew cleanup --prune=all) after package management.
@@ -83,6 +93,10 @@ EXAMPLES = r"""
     update_homebrew: true
     upgrade_all: true
     greedy: true
+    no_quit_casks:
+      - iterm2
+      - wezterm
+      - wezterm@nightly
     cleanup: on_package_change
 
 - name: Retry cask operations with a sudo password
@@ -107,6 +121,11 @@ upgrade_candidates:
   description: Installed packages that were outdated before mutation.
   returned: always
   type: dict
+no_quit_upgrade_candidates:
+  description: Outdated casks selected for the first upgrade batch with C(--no-quit).
+  returned: always
+  type: list
+  elements: str
 needs_sudo:
   description:
     - Whether a failed cask-capable command needs a sudo password retry.
@@ -340,6 +359,7 @@ def failure_result(manager, error):
         "command_timings": manager.command_timings if manager else [],
         "install_candidates": manager.install_candidates if manager else {"formulas": [], "casks": []},
         "upgrade_candidates": manager.upgrade_candidates if manager else {"formulas": [], "casks": []},
+        "no_quit_upgrade_candidates": manager.no_quit_upgrade_candidates if manager else [],
         "needs_sudo": needs_sudo,
     }
     if error.command is not None:
@@ -399,6 +419,7 @@ class HomebrewManager:
         greedy=False,
         cleanup="never",
         sudo_password=None,
+        no_quit_casks=None,
     ):
         self.module = module
         self.brew_path = brew_path
@@ -407,6 +428,7 @@ class HomebrewManager:
         self.update_homebrew = update_homebrew
         self.upgrade_all = upgrade_all
         self.greedy = greedy
+        self.no_quit_casks = set(normalize_package_names(no_quit_casks or [], "no-quit cask"))
         self.cleanup = cleanup
         self.sudo_password = sudo_password
         self.changed = False
@@ -418,6 +440,7 @@ class HomebrewManager:
         self.command_timings = []
         self.install_candidates = {"formulas": [], "casks": []}
         self.upgrade_candidates = {"formulas": [], "casks": []}
+        self.no_quit_upgrade_candidates = []
         self.manage_formula_namespace = bool(self.formulas)
         self.manage_cask_namespace = bool(self.casks)
         self.environment = {
@@ -563,14 +586,18 @@ class HomebrewManager:
             command.append("--greedy")
         return command
 
-    def _upgrade_command(self):
+    def _upgrade_command(self, package_type=None, no_quit=False):
         command = [self.brew_path, "upgrade", "--quiet", "--no-ask"]
-        if self.manage_formula_namespace and not self.manage_cask_namespace:
+        if package_type is not None:
+            command.append("--%s" % package_type)
+        elif self.manage_formula_namespace and not self.manage_cask_namespace:
             command.append("--formula")
         elif self.manage_cask_namespace and not self.manage_formula_namespace:
             command.append("--cask")
-        if self.manage_cask_namespace and self.greedy:
+        if package_type != "formula" and self.manage_cask_namespace and self.greedy:
             command.append("--greedy")
+        if no_quit:
+            command.append("--no-quit")
         return command
 
     def _upgrade(self):
@@ -587,6 +614,10 @@ class HomebrewManager:
             "formulas": outdated_formulas,
             "casks": outdated_casks,
         }
+        self.no_quit_upgrade_candidates = [
+            name for name in outdated_casks
+            if name in self.no_quit_casks or name.rsplit("/", 1)[-1] in self.no_quit_casks
+        ]
 
         if not (outdated_formulas or outdated_casks):
             return
@@ -595,9 +626,27 @@ class HomebrewManager:
             self.changed = True
             return
 
-        self._run_command(self._upgrade_command(), sudo_capable=self.manage_cask_namespace)
-        self.package_changed = True
-        self.changed = True
+        batches = [(self._upgrade_command(), self.manage_cask_namespace)]
+        if self.no_quit_upgrade_candidates:
+            # A :latest cask can remain outdated after upgrade. Never follow its no-quit
+            # batch with an unrestricted upgrade that could select and quit it again.
+            protected = set(self.no_quit_upgrade_candidates)
+            remaining_casks = [name for name in outdated_casks if name not in protected]
+            batches = [
+                (
+                    self._upgrade_command("cask", no_quit=True) + self.no_quit_upgrade_candidates,
+                    True,
+                )
+            ]
+            if outdated_formulas:
+                batches.append((self._upgrade_command("formula") + outdated_formulas, False))
+            if remaining_casks:
+                batches.append((self._upgrade_command("cask") + remaining_casks, True))
+
+        for command, sudo_capable in batches:
+            self._run_command(command, sudo_capable=sudo_capable)
+            self.package_changed = True
+            self.changed = True
 
     def _cleanup(self):
         if self.cleanup == "never":
@@ -653,6 +702,7 @@ class HomebrewManager:
             "command_timings": self.command_timings,
             "install_candidates": self.install_candidates,
             "upgrade_candidates": self.upgrade_candidates,
+            "no_quit_upgrade_candidates": self.no_quit_upgrade_candidates,
             "needs_sudo": False,
         }
 
@@ -673,6 +723,7 @@ def main():
             "update_homebrew": {"type": "bool", "default": False},
             "upgrade_all": {"type": "bool", "default": False},
             "greedy": {"type": "bool", "default": False},
+            "no_quit_casks": {"type": "list", "elements": "str", "default": []},
             "cleanup": {
                 "type": "str",
                 "choices": ["never", "on_package_change", "always"],
@@ -708,6 +759,7 @@ def main():
             greedy=module.params["greedy"],
             cleanup=module.params["cleanup"],
             sudo_password=module.params["sudo_password"],
+            no_quit_casks=module.params["no_quit_casks"],
         )
         module.exit_json(**manager.run())
     except HomebrewError as error:
