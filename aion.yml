@@ -58,6 +58,7 @@
           - kernel-headers
           - golang
           - rust
+          - cargo
           - nodejs24
           - nodejs24-npm
       sshd: 
