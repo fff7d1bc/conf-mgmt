@@ -1,0 +1,31 @@
+- name: ~/.config/maki/themes directory
+  file:
+    state: directory
+    path: '{{ home }}/.config/maki/themes'
+    owner: '{{ uid }}'
+    group: '{{ gid }}'
+    mode: 0700
+
+- name: Maki theme
+  copy:
+    src: maki/blackmesa_hc.toml
+    dest: '{{ home }}/.config/maki/themes/blackmesa_hc.toml'
+    owner: '{{ uid }}'
+    group: '{{ gid }}'
+    mode: 0600
+
+- name: ~/.local/state/maki directory
+  file:
+    state: directory
+    path: '{{ home }}/.local/state/maki'
+    owner: '{{ uid }}'
+    group: '{{ gid }}'
+    mode: 0700
+
+- name: Maki theme selection
+  copy:
+    content: blackmesa_hc
+    dest: '{{ home }}/.local/state/maki/theme'
+    owner: '{{ uid }}'
+    group: '{{ gid }}'
+    mode: 0600

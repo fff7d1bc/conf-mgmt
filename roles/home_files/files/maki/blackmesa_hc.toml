@@ -1,0 +1,167 @@
+# Black Mesa high-contrast theme for Maki
+
+"comment"                         = { fg = "comment_syntax" }
+"comment.block"                   = { fg = "comment_syntax" }
+"comment.block.documentation"     = { fg = "comment_syntax_docs" }
+"comment.line"                    = { fg = "comment_syntax" }
+"comment.line.documentation"      = { fg = "comment_syntax_docs" }
+
+"constant"                        = { fg = "purple" }
+"constant.builtin"                = { fg = "purple" }
+"constant.builtin.boolean"        = { fg = "purple" }
+"constant.character"              = { fg = "green" }
+"constant.character.escape"       = { fg = "orange" }
+"constant.macro"                  = { fg = "purple" }
+"constant.numeric"                = { fg = "purple" }
+"constructor"                     = { fg = "purple" }
+
+"error"                           = { fg = "red" }
+"warning"                         = { fg = "yellow" }
+"info"                            = { fg = "cyan" }
+"hint"                            = { fg = "comment_lighter" }
+
+"diff.delta"                      = { fg = "orange" }
+"diff.minus"                      = { fg = "red" }
+"diff.plus"                       = { fg = "green" }
+
+"function"                        = { fg = "green" }
+"function.builtin"                = { fg = "green" }
+"function.call"                   = { fg = "green" }
+"function.macro"                  = { fg = "orange" }
+"function.method"                 = { fg = "green" }
+
+"keyword"                         = { fg = "red" }
+"keyword.control.conditional"     = { fg = "red" }
+"keyword.control.exception"       = { fg = "red" }
+"keyword.control.import"          = { fg = "red" }
+"keyword.control.repeat"          = { fg = "red" }
+"keyword.directive"               = { fg = "orange" }
+"keyword.function"                = { fg = "red" }
+"keyword.operator"                = { fg = "red" }
+"keyword.return"                  = { fg = "red" }
+"keyword.storage"                 = { fg = "red" }
+"keyword.storage.modifier"        = { fg = "red" }
+"keyword.storage.type"            = { fg = "yellow", modifiers = ["italic"] }
+
+"label"                           = { fg = "blue" }
+"attribute"                       = { fg = "cyan", modifiers = ["italic"] }
+"namespace"                       = { fg = "foreground" }
+"annotation"                      = { fg = "foreground" }
+
+"markup.bold"                     = { fg = "orange", modifiers = ["bold"] }
+"markup.heading"                  = { fg = "green", modifiers = ["bold"] }
+"markup.italic"                   = { fg = "yellow", modifiers = ["italic"] }
+"markup.link.text"                = { fg = "blue" }
+"markup.link.url"                 = { fg = "cyan" }
+"markup.list"                     = { fg = "orange" }
+"markup.quote"                    = { fg = "yellow", modifiers = ["italic"] }
+"markup.raw"                      = { fg = "foreground" }
+"markup.strikethrough"            = { modifiers = ["crossed_out"] }
+
+"punctuation"                     = { fg = "foreground" }
+"punctuation.bracket"             = { fg = "foreground" }
+"punctuation.delimiter"           = { fg = "foreground" }
+"punctuation.special"             = { fg = "orange" }
+
+"special"                         = { fg = "orange" }
+
+"string"                          = { fg = "green" }
+"string.regexp"                   = { fg = "orange" }
+"string.special"                  = { fg = "cyan" }
+"string.symbol"                   = { fg = "green" }
+
+"tag"                             = { fg = "orange" }
+"tag.attribute"                   = { fg = "cyan", modifiers = ["italic"] }
+"tag.delimiter"                   = { fg = "foreground" }
+
+"type"                            = { fg = "yellow", modifiers = ["italic"] }
+"type.builtin"                    = { fg = "yellow" }
+"type.enum.variant"               = { fg = "foreground", modifiers = ["italic"] }
+
+"variable"                        = { fg = "foreground" }
+"variable.builtin"                = { fg = "orange", modifiers = ["italic"] }
+"variable.other"                  = { fg = "foreground" }
+"variable.other.member"           = { fg = "foreground" }
+"variable.parameter"              = { fg = "blue", modifiers = ["italic"] }
+
+[palette]
+background       = "#090a0b"
+background_2     = "#1c1814"
+foreground       = "#f3ecdf"
+comment          = "#b6ada0"
+comment_lighter  = "#a89984"
+comment_syntax      = "#9a9086"
+comment_syntax_docs = "#a89d90"
+cyan             = "#f8d880"
+green            = "#f0a53a"
+orange           = "#fe8019"
+pink             = "#ffb36b"
+purple           = "#ffb36b"
+red              = "#fb4934"
+yellow           = "#fabd2f"
+current_line     = "#3c3836"
+selection        = "#504945"
+blue             = "#b6ada0"
+gold             = "#f8d880"
+rose             = "#ffb36b"
+foam             = "#f0a53a"
+iris             = "#f8d880"
+love             = "#fb4934"
+pine             = "#38909c"
+mode_build       = "#fabd2f"
+mode_plan        = "#fb4934"
+
+[ui]
+assistant_prefix   = { fg = "#f8d880" }
+user               = { fg = "#ffb36b" }
+assistant          = { fg = "#f3ecdf" }
+thinking           = { fg = "#b6ada0", modifiers = ["italic"] }
+strikethrough      = { fg = "#b6ada0", modifiers = ["crossed_out"] }
+code_block         = { fg = "#f3ecdf" }
+plan_rule          = { fg = "#ffb36b", modifiers = ["bold"] }
+horizontal_rule    = { fg = "#b6ada0" }
+table_border       = { fg = "#b6ada0" }
+tool_bg            = { bg = "#1c1814" }
+user_bg            = { bg = "#26201a" }
+tool_prefix        = { fg = "#f3ecdf", modifiers = ["bold"] }
+tool               = { fg = "#f3ecdf" }
+tool_path          = { fg = "#f0a53a" }
+tool_annotation    = { fg = "#b6ada0" }
+tool_success       = { fg = "#f0a53a" }
+tool_error         = { fg = "#ff6b3d" }
+tool_dim           = { fg = "#b6ada0" }
+diff_old           = { bg = "#3c1f1f" }
+diff_new           = { bg = "#1f3c1f" }
+diff_old_emphasis  = { bg = "#5c2e2e" }
+diff_new_emphasis  = { bg = "#2e5c2e" }
+diff_line_nr       = { fg = "#b6ada0" }
+item_selected      = { fg = "#090a0b", bg = "#fabd2f" }
+item               = { fg = "#ffb36b" }
+item_desc          = { fg = "#b6ada0" }
+accent             = { fg = "#fe8019" }
+panel_border       = { fg = "#f8d880" }
+panel_title        = { fg = "#f8d880", modifiers = ["bold"] }
+cursor             = { fg = "#090a0b", bg = "#f3ecdf" }
+input_border       = { fg = "#b6ada0" }
+keybind_key        = { fg = "#f0a53a", modifiers = ["bold"] }
+keybind_section    = { fg = "#f8d880", modifiers = ["bold"] }
+keybind_desc       = { fg = "#f3ecdf" }
+status_dim         = { fg = "#b6ada0" }
+error              = { fg = "#ff6b3d" }
+todo_completed     = { fg = "#f0a53a" }
+todo_in_progress   = { fg = "#f8d880" }
+todo_pending       = { fg = "#b6ada0" }
+todo_cancelled     = { fg = "#ff6b3d", modifiers = ["crossed_out"] }
+queue              = { fg = "#f8d880" }
+plan_path          = { fg = "#f8d880", modifiers = ["bold"] }
+status_notice      = { fg = "#f8d880" }
+status_retry_error = { fg = "#ff6b3d" }
+status_retry_info  = { fg = "#b6ada0" }
+input_placeholder  = { fg = "#b6ada0" }
+inline_code        = { fg = "#fabd2f" }
+item_match          = { fg = "#fe8019", modifiers = ["bold"] }
+item_match_selected = { fg = "#090a0b", bg = "#fabd2f", modifiers = ["bold", "underlined"] }
+queue_delete       = { fg = "#ff6b3d", modifiers = ["bold"] }
+timestamp          = { fg = "#b6ada0" }
+spinner            = { fg = "#f8d880" }
+active             = { fg = "#f0a53a" }
