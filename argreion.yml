@@ -104,6 +104,7 @@
             - bash
             - zsh
             - mc
+            - maki
             - mpv
             - wezterm
             - git

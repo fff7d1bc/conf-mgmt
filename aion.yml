@@ -83,6 +83,7 @@
             - bash
             - zsh
             - mc
+            - maki
             - mpv
             - tmux
             - git

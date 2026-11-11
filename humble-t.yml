@@ -21,6 +21,7 @@
             - bash
             - zsh
             - mc
+            - maki
             - tmux
             - git
             - vim
